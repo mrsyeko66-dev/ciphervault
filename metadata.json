@@ -1,0 +1,6 @@
+{
+  "name": "CipherVault",
+  "description": "Cyberpunk Matrix-themed cryptographic tool supporting cascaded 3-layer encryption, 1GB+ streaming file processing, advanced text editor, and Room database project persistence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

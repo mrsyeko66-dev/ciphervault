@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="matrix_green_primary">#00FF41</color>
+    <color name="matrix_green_dark">#00380E</color>
+    <color name="matrix_black">#050806</color>
+    <color name="matrix_dark_bg">#0A0F0D</color>
+    <color name="matrix_surface">#0F1A14</color>
+    <color name="cyber_cyan">#00E5FF</color>
+    <color name="cyber_amber">#FFB800</color>
+    <color name="cyber_crimson">#FF3366</color>
+</resources>
