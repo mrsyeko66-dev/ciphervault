@@ -1,6 +1,8 @@
 package com.kafappstore.ciphervault.ui.components
 
+import android.content.Intent
 import android.net.Uri
+import android.webkit.MimeTypeMap
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -23,14 +25,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -42,7 +49,10 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import com.kafappstore.ciphervault.crypto.CipherEngine
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -151,7 +161,7 @@ fun LargeFileStreamingSection(
 
                     CyberSecondaryButton(
                         text = "Guide",
-                        icon = Icons.Default.HelpOutline,
+                        icon = Icons.AutoMirrored.Filled.HelpOutline,
                         onClick = { showFormatsGuideDialog = true },
                         accentColor = CyberAmber,
                         testTag = "btn_formats_guide"
@@ -348,7 +358,13 @@ fun LargeFileStreamingSection(
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Text(
-                        text = "Encryption Password (12 to 22 characters):",
+                        text = if (isDecryptionMode) {
+                            "Decryption Password:"
+                        } else if (!streamingState.useSecretKey) {
+                            "Standalone Password (Requires Very Strong Password):"
+                        } else {
+                            "Encryption Password (12 to 64 characters):"
+                        },
                         style = MaterialTheme.typography.bodySmall.copy(
                             color = if (isDecryptionMode) CyberCyan else MatrixGreenPrimary,
                             fontWeight = FontWeight.Bold
@@ -377,13 +393,111 @@ fun LargeFileStreamingSection(
                                 )
                             }
                         },
-                        placeholder = { Text("Password (12-22 chars)...") },
+                        placeholder = {
+                            Text(
+                                if (isDecryptionMode) "Enter file password..."
+                                else if (!streamingState.useSecretKey) "حداقل ۱۴ کاراکتر با حروف بزرگ و کوچک، عدد و نماد..."
+                                else "Password (12-64 chars)..."
+                            )
+                        },
                         modifier = Modifier.fillMaxWidth()
                     )
 
                     if (!isDecryptionMode) {
                         Spacer(modifier = Modifier.height(8.dp))
                         PasswordStrengthMeter(password = streamingState.password)
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Standalone Mode (No Secret Key) Switch Card
+                        Surface(
+                            color = if (!streamingState.useSecretKey) Color(0xFF14241B) else Color(0xFF09140C),
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, if (!streamingState.useSecretKey) MatrixGreenPrimary else Color(0xFF1B3B24)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.Shield,
+                                            contentDescription = null,
+                                            tint = if (!streamingState.useSecretKey) MatrixGreenPrimary else Color.Gray,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "رمزنگاری بدون کلید مخفی (حالت مستقل)",
+                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                color = if (!streamingState.useSecretKey) MatrixGreenPrimary else Color.LightGray,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 12.sp
+                                            )
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = if (!streamingState.useSecretKey)
+                                            "فایل فقط با این رمز عبور باز می‌شود (فاقد وابستگی به کلید مخفی برنامه). نیازمند پسورد بسیار قوی."
+                                        else
+                                            "استفاده از کلید مخفی برنامه (پیش‌فرض با حداکثر امنیت)",
+                                        style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray, fontSize = 10.sp)
+                                    )
+                                }
+                                Switch(
+                                    checked = !streamingState.useSecretKey,
+                                    onCheckedChange = { isStandalone ->
+                                        viewModel.toggleStreamingUseSecretKey(!isStandalone)
+                                    },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = MatrixGreenPrimary,
+                                        checkedTrackColor = Color(0xFF134E27),
+                                        uncheckedThumbColor = Color.Gray,
+                                        uncheckedTrackColor = Color(0xFF101C14)
+                                    )
+                                )
+                            }
+                        }
+
+                        // Strong Password Criteria Checklist when in Standalone mode
+                        if (!streamingState.useSecretKey) {
+                            val pw = streamingState.password
+                            val cLength = pw.length >= 14
+                            val cUpper = pw.any { it.isUpperCase() }
+                            val cLower = pw.any { it.isLowerCase() }
+                            val cDigit = pw.any { it.isDigit() }
+                            val cSpecial = pw.any { !it.isLetterOrDigit() }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Surface(
+                                color = Color(0xFF07140B),
+                                shape = RoundedCornerShape(8.dp),
+                                border = BorderStroke(1.dp, Color(0xFF1C3A24)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Text(
+                                        text = "الزامات پسورد قوی در حالت بدون کلید مخفی:",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            color = MatrixGreenPrimary,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    StrengthCheckItem(label = "حداقل ۱۴ کاراکتر (${pw.length}/14)", passed = cLength)
+                                    StrengthCheckItem(label = "شامل حروف بزرگ انگلیسی (A-Z)", passed = cUpper)
+                                    StrengthCheckItem(label = "شامل حروف کوچک انگلیسی (a-z)", passed = cLower)
+                                    StrengthCheckItem(label = "شامل حداقل یک رقم عدد (0-9)", passed = cDigit)
+                                    StrengthCheckItem(label = "شامل حداقل یک نماد خاص (@#\$%...)", passed = cSpecial)
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -391,21 +505,39 @@ fun LargeFileStreamingSection(
             Spacer(modifier = Modifier.height(14.dp))
 
             // Action Button
-            val isEnabled = !streamingState.isStreaming &&
-                    (if (isDecryptionMode) streamingState.password.isNotEmpty() else streamingState.password.length in 12..22)
+            val strength = remember(streamingState.password) { CipherEngine.evaluatePasswordStrength(streamingState.password) }
+            val isEnabled = !streamingState.isStreaming && when {
+                isDecryptionMode -> streamingState.password.isNotEmpty()
+                !streamingState.useSecretKey -> strength.first
+                else -> streamingState.password.length in 12..64
+            }
 
             CyberButton(
                 text = if (isDecryptionMode) "Decrypt File & Save" else "Encrypt File & Save",
                 icon = if (isDecryptionMode) Icons.Default.LockOpen else Icons.Default.Lock,
                 onClick = {
-                    val defaultName = if (isDecryptionMode) {
-                        "decrypted_${streamingState.selectedFileName.removeSuffix(".cvault").removeSuffix(".cenc").removeSuffix(".enc")}"
+                    if (isDecryptionMode) {
+                        val peek = viewModel.inspectEncryptedFileForDecryption(context.contentResolver)
+                        if (peek.isFailure) {
+                            val ex = peek.exceptionOrNull()
+                            val msg = if (ex is SecurityException || ex is IllegalArgumentException) {
+                                "رمز عبور اشتباه است یا فرمت فایل رمزنگاری شده نامعتبر است."
+                            } else {
+                                ex?.message ?: "خطا در بررسی فایل رمزنگاری شده"
+                            }
+                            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                            return@CyberButton
+                        }
+                        val meta = peek.getOrThrow()
+                        val origName = meta.originalFileName.ifBlank { "decrypted_file" }
+                        val origExt = meta.originalExtension.ifBlank { "bin" }
+                        val finalName = if (origName.contains(".")) origName else "$origName.$origExt"
+                        saveTargetLauncher.launch(finalName)
                     } else {
                         val baseName = streamingState.selectedFileName.substringBeforeLast('.', "file")
                         val outExt = viewModel.getEffectiveOutputExtension()
-                        "${baseName}_encrypted.$outExt"
+                        saveTargetLauncher.launch("${baseName}_encrypted.$outExt")
                     }
-                    saveTargetLauncher.launch(defaultName)
                 },
                 enabled = isEnabled,
                 accentColor = if (isDecryptionMode) CyberCyan else MatrixGreenPrimary,
@@ -541,7 +673,82 @@ fun LargeFileStreamingSection(
                     )
                 }
             }
+
+            if (isDecryptionMode && streamingState.decryptResult != null && streamingState.lastSavedTargetUri != null) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    CyberButton(
+                        text = "باز کردن فایل",
+                        icon = Icons.Default.OpenInNew,
+                        onClick = {
+                            val savedUri = streamingState.lastSavedTargetUri ?: return@CyberButton
+                            val ext = streamingState.decryptResult?.originalExtension?.lowercase(Locale.ROOT) ?: "bin"
+                            val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "*/*"
+                            val intent = Intent(Intent.ACTION_VIEW).apply {
+                                setDataAndType(savedUri, mime)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            try {
+                                context.startActivity(Intent.createChooser(intent, "Open File"))
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "برنامه‌ای برای باز کردن این فایل یافت نشد", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        accentColor = CyberCyan,
+                        modifier = Modifier.weight(1f)
+                    )
+                    CyberButton(
+                        text = "اشتراک‌گذاری",
+                        icon = Icons.Default.Share,
+                        onClick = {
+                            val savedUri = streamingState.lastSavedTargetUri ?: return@CyberButton
+                            val ext = streamingState.decryptResult?.originalExtension?.lowercase(Locale.ROOT) ?: "bin"
+                            val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "*/*"
+                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                type = mime
+                                putExtra(Intent.EXTRA_STREAM, savedUri)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            try {
+                                context.startActivity(Intent.createChooser(intent, "Share File"))
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "خطا در اشتراک‌گذاری فایل", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        accentColor = MatrixGreenPrimary,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
         }
+    }
+}
+
+@Composable
+fun StrengthCheckItem(label: String, passed: Boolean) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = if (passed) Icons.Default.Check else Icons.Default.Close,
+            contentDescription = null,
+            tint = if (passed) MatrixGreenPrimary else Color(0xFF888888),
+            modifier = Modifier.size(14.dp)
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall.copy(
+                color = if (passed) MatrixGreenPrimary else Color(0xFFAAAAAA),
+                fontSize = 11.sp
+            )
+        )
     }
 }
 
@@ -552,7 +759,7 @@ fun FileFormatsGuideDialog(onDismiss: () -> Unit) {
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = Icons.Default.HelpOutline,
+                    imageVector = Icons.AutoMirrored.Filled.HelpOutline,
                     contentDescription = null,
                     tint = CyberAmber,
                     modifier = Modifier.size(22.dp)

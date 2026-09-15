@@ -49,13 +49,13 @@ class ExampleUnitTest {
         val shortPwResult = CipherEngine.encrypt(text, "ShortPass1!")
         assertFalse("Password < 12 characters must fail", shortPwResult.isSuccess)
 
-        // Too long (> 22)
-        val longPwResult = CipherEngine.encrypt(text, "SuperLongPasswordExceeding22Chars!")
-        assertFalse("Password > 22 characters must fail", longPwResult.isSuccess)
+        // Too long (> 64)
+        val longPwResult = CipherEngine.encrypt(text, "A".repeat(65))
+        assertFalse("Password > 64 characters must fail", longPwResult.isSuccess)
 
-        // Valid length (12 to 22)
+        // Valid length (12 to 64)
         val validPwResult = CipherEngine.encrypt(text, "ValidPass12345#")
-        assertTrue("Password between 12 and 22 chars must succeed", validPwResult.isSuccess)
+        assertTrue("Password between 12 and 64 chars must succeed", validPwResult.isSuccess)
     }
 
     @Test

@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.TextFields
@@ -68,6 +69,7 @@ import com.kafappstore.ciphervault.ui.components.CyberButton
 import com.kafappstore.ciphervault.ui.components.CyberSecondaryButton
 import com.kafappstore.ciphervault.ui.components.CyberTerminalTextField
 import com.kafappstore.ciphervault.ui.components.LargeFileStreamingSection
+import com.kafappstore.ciphervault.ui.theme.CyberAmber
 import com.kafappstore.ciphervault.ui.theme.CyberCrimson
 import com.kafappstore.ciphervault.ui.theme.CyberCyan
 import com.kafappstore.ciphervault.ui.theme.MatrixBorderNeon
@@ -245,14 +247,74 @@ fun DecryptScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            CyberTerminalTextField(
-                value = state.inputBase64,
-                onValueChange = { viewModel.onDecryptInputChanged(it) },
-                placeholder = "Paste encrypted Base64 string here or load from file...",
-                modifier = Modifier.fillMaxWidth(),
-                maxLines = 8,
-                testTag = "decrypt_input_base64"
-            )
+            val isInputLarge = state.inputBase64.length > 30_000
+            val displayedInput = remember(state.inputBase64) {
+                if (isInputLarge) state.inputBase64.take(30_000) else state.inputBase64
+            }
+
+            if (isInputLarge) {
+                Surface(
+                    color = Color(0xFF142416),
+                    border = BorderStroke(1.dp, CyberAmber),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(10.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = null,
+                                tint = CyberAmber,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "طول رشته ورودی زیاد است (${state.inputBase64.length} کاراکتر)",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    color = CyberAmber,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "جهت جلوگیری از کندی برنامه، ۳۰,۰۰۰ کاراکتر اول نمایش داده شده است. تمام ${state.inputBase64.length} کاراکتر بدون محدودیت رمزگشایی می‌شوند.",
+                            style = MaterialTheme.typography.bodySmall.copy(color = Color.LightGray, fontSize = 11.sp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 160.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFF071209))
+                        .border(BorderStroke(1.dp, MatrixBorderNeon), RoundedCornerShape(8.dp))
+                        .padding(10.dp)
+                ) {
+                    Text(
+                        text = displayedInput,
+                        style = TextStyle(
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 11.sp,
+                            color = MatrixTextCode
+                        ),
+                        modifier = Modifier.verticalScroll(rememberScrollState())
+                    )
+                }
+            } else {
+                CyberTerminalTextField(
+                    value = state.inputBase64,
+                    onValueChange = { viewModel.onDecryptInputChanged(it) },
+                    placeholder = "Paste encrypted Base64 string here or load from file...",
+                    modifier = Modifier.fillMaxWidth(),
+                    maxLines = 8,
+                    testTag = "decrypt_input_base64"
+                )
+            }
 
             Row(
                 modifier = Modifier
@@ -359,6 +421,39 @@ fun DecryptScreen(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
+                        val isOutputLarge = plaintext.length > 30_000
+                        val displayedPlaintext = remember(plaintext) {
+                            if (isOutputLarge) plaintext.take(30_000) else plaintext
+                        }
+
+                        if (isOutputLarge) {
+                            Surface(
+                                color = Color(0xFF142416),
+                                border = BorderStroke(1.dp, CyberAmber),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Info,
+                                        contentDescription = null,
+                                        tint = CyberAmber,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "متن بسیار طولانی است (${plaintext.length} کاراکتر). ۳۰,۰۰۰ کاراکتر اول نمایش داده شده است. تمام متن در دکمه‌های کپی و ذخیره موجود است.",
+                                        style = MaterialTheme.typography.bodySmall.copy(color = CyberAmber, fontSize = 11.sp)
+                                    )
+                                }
+                            }
+                        }
+
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -369,7 +464,7 @@ fun DecryptScreen(
                                 .padding(12.dp)
                         ) {
                             Text(
-                                text = plaintext,
+                                text = displayedPlaintext,
                                 style = TextStyle(
                                     fontFamily = FontFamily.Monospace,
                                     fontSize = 13.sp,

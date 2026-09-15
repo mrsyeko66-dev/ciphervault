@@ -33,6 +33,7 @@ data class EncryptUiState(
     val inputText: String = "",
     val password: String = "",
     val passwordVisible: Boolean = false,
+    val useSecretKey: Boolean = true, // Toggle for Standalone mode (without secret key)
     val isEncrypting: Boolean = false,
     val resultBase64: String? = null,
     val errorMessage: String? = null,
@@ -61,10 +62,12 @@ data class FileStreamingUiState(
     val speedMBs: Float = 0f,
     val password: String = "",
     val passwordVisible: Boolean = false,
+    val useSecretKey: Boolean = true, // Toggle for Standalone file encryption
     val selectedOutputExtension: String = "cvault", // cvault, cenc, enc, custom
     val customOutputExtension: String = "",
     val encryptResult: CipherEngine.StreamingResult? = null,
     val decryptResult: CipherEngine.StreamingDecryptedMetadata? = null,
+    val lastSavedTargetUri: Uri? = null,
     val errorMessage: String? = null,
     val successMessage: String? = null
 )
@@ -151,9 +154,16 @@ class CipherViewModel(
     }
 
     fun onEncryptPasswordChanged(pw: String) {
-        val trimmed = if (pw.length > 22) pw.substring(0, 22) else pw
+        val trimmed = if (pw.length > 64) pw.substring(0, 64) else pw
         _encryptState.value = _encryptState.value.copy(
             password = trimmed,
+            errorMessage = null
+        )
+    }
+
+    fun toggleEncryptUseSecretKey(enabled: Boolean) {
+        _encryptState.value = _encryptState.value.copy(
+            useSecretKey = enabled,
             errorMessage = null
         )
     }
@@ -172,21 +182,30 @@ class CipherViewModel(
         val currentState = _encryptState.value
         val text = currentState.inputText
         val password = currentState.password
+        val useSecret = currentState.useSecretKey
 
         if (text.isBlank()) {
             _encryptState.value = currentState.copy(errorMessage = "Please enter text to encrypt.")
             return
         }
 
-        if (password.length !in 12..22) {
-            _encryptState.value = currentState.copy(errorMessage = "Password length must be between 12 and 22 characters.")
+        if (!useSecret) {
+            val strength = CipherEngine.evaluatePasswordStrength(password)
+            if (!strength.first) {
+                _encryptState.value = currentState.copy(
+                    errorMessage = "رمزنگاری بدون کلید مخفی نیازمند رمز عبور بسیار قوی است:\n" + strength.third.joinToString("\n• ", prefix = "• ")
+                )
+                return
+            }
+        } else if (password.length !in 12..64) {
+            _encryptState.value = currentState.copy(errorMessage = "Password length must be between 12 and 64 characters.")
             return
         }
 
         _encryptState.value = currentState.copy(isEncrypting = true, errorMessage = null)
 
         viewModelScope.launch(Dispatchers.Default) {
-            val pepper = settings.value.pepper
+            val pepper = if (useSecret) settings.value.pepper else ""
             val result = CipherEngine.encrypt(
                 plaintext = text,
                 password = password,
@@ -200,7 +219,7 @@ class CipherViewModel(
                             isEncrypting = false,
                             resultBase64 = base64,
                             errorMessage = null,
-                            successMessage = "3-Layer encryption completed successfully."
+                            successMessage = if (useSecret) "3-Layer encryption completed successfully." else "Standalone encryption (No secret key) completed successfully."
                         )
                     },
                     onFailure = { ex ->
@@ -227,7 +246,7 @@ class CipherViewModel(
     }
 
     fun onDecryptPasswordChanged(pw: String) {
-        val trimmed = if (pw.length > 22) pw.substring(0, 22) else pw
+        val trimmed = if (pw.length > 64) pw.substring(0, 64) else pw
         _decryptState.value = _decryptState.value.copy(
             password = trimmed,
             errorMessage = null
@@ -334,9 +353,16 @@ class CipherViewModel(
     }
 
     fun onStreamingPasswordChanged(pw: String) {
-        val trimmed = if (pw.length > 22) pw.substring(0, 22) else pw
+        val trimmed = if (pw.length > 64) pw.substring(0, 64) else pw
         _streamingState.value = _streamingState.value.copy(
             password = trimmed,
+            errorMessage = null
+        )
+    }
+
+    fun toggleStreamingUseSecretKey(enabled: Boolean) {
+        _streamingState.value = _streamingState.value.copy(
+            useSecretKey = enabled,
             errorMessage = null
         )
     }
@@ -371,6 +397,19 @@ class CipherViewModel(
         }
     }
 
+    fun inspectEncryptedFileForDecryption(contentResolver: ContentResolver): Result<CipherEngine.StreamingDecryptedMetadata> {
+        val st = _streamingState.value
+        val sourceUri = st.selectedFileUri ?: return Result.failure(IllegalStateException("No file selected"))
+        val password = st.password
+        return try {
+            contentResolver.openInputStream(sourceUri)?.use { inputStream ->
+                CipherEngine.peekStreamMetadata(inputStream, password)
+            } ?: Result.failure(IllegalStateException("Cannot open file input stream"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     fun startStreamingEncryption(
         targetUri: Uri,
         contentResolver: ContentResolver
@@ -381,9 +420,18 @@ class CipherViewModel(
         val originalName = st.selectedFileName
         val ext = originalName.substringAfterLast('.', "bin")
         val effectiveOutExt = getEffectiveOutputExtension()
+        val useSecret = st.useSecretKey
 
-        if (password.length !in 12..22) {
-            _streamingState.value = st.copy(errorMessage = "Password length must be between 12 and 22 characters.")
+        if (!useSecret) {
+            val strength = CipherEngine.evaluatePasswordStrength(password)
+            if (!strength.first) {
+                _streamingState.value = st.copy(
+                    errorMessage = "رمزنگاری فایل بدون کلید مخفی نیازمند پسورد بسیار قوی است:\n" + strength.third.joinToString("\n• ", prefix = "• ")
+                )
+                return
+            }
+        } else if (password.length !in 12..64) {
+            _streamingState.value = st.copy(errorMessage = "Password length must be between 12 and 64 characters.")
             return
         }
 
@@ -406,7 +454,7 @@ class CipherViewModel(
                             inputStream = inputStream,
                             outputStream = outputStream,
                             password = password,
-                            pepper = settings.value.pepper,
+                            pepper = if (useSecret) settings.value.pepper else "",
                             originalFileName = originalName,
                             originalExtension = ext,
                             totalBytes = st.selectedFileSize
@@ -434,6 +482,7 @@ class CipherViewModel(
                                         isStreaming = false,
                                         progressPercent = 1f,
                                         encryptResult = finalRes,
+                                        lastSavedTargetUri = targetUri,
                                         errorMessage = null,
                                         successMessage = "Large file (${formatFileSize(res.bytesProcessed)}) encrypted and saved successfully."
                                     )
@@ -516,6 +565,7 @@ class CipherViewModel(
                                         isStreaming = false,
                                         progressPercent = 1f,
                                         decryptResult = meta,
+                                        lastSavedTargetUri = targetUri,
                                         errorMessage = null,
                                         successMessage = "File decrypted successfully: ${meta.originalFileName}"
                                     )

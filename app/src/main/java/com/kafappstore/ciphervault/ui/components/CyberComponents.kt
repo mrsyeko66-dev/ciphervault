@@ -791,51 +791,94 @@ fun ConditionalOutputSection(
 
                 OutputMode.LONG -> {
                     // Case 3: Long output (> 10000 chars)
-                    // Text field hidden / read-only summary, copy disabled/hidden, only save button
+                    val displayedSample = remember(output) {
+                        if (length > 30_000) output.take(30_000) else output
+                    }
+
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0x26FF3366))
-                            .border(BorderStroke(1.dp, CyberCrimson.copy(alpha = 0.5f)), RoundedCornerShape(8.dp))
-                            .padding(14.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                            .background(Color(0x2600FF41))
+                            .border(BorderStroke(1.dp, MatrixGreenPrimary.copy(alpha = 0.5f)), RoundedCornerShape(8.dp))
+                            .padding(12.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Lock,
-                            contentDescription = null,
-                            tint = CyberCrimson,
-                            modifier = Modifier.size(32.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Output is very large ($length characters).",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                color = Color.White,
-                                textAlign = TextAlign.Center
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = MatrixGreenPrimary,
+                                modifier = Modifier.size(20.dp)
                             )
-                        )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "حجم خروجی زیاد است ($length کاراکتر)",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    color = MatrixGreenPrimary,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Please save it directly to a file. In-line text rendering is disabled to preserve device performance.",
+                            text = if (length > 30_000)
+                                "جهت بهینه‌سازی و روانی برنامه، ۳۰,۰۰۰ کاراکتر اول نمایش داده شده است. تمام محتوا از طریق دکمه‌های زیر بدون کم و کاست قابل کپی یا ذخیره در فایل است."
+                            else
+                                "تمام محتوا آماده کپی و ذخیره‌سازی در فایل است.",
                             style = MaterialTheme.typography.bodySmall.copy(
-                                color = Color(0xFFFFA3B8),
-                                textAlign = TextAlign.Center
+                                color = Color.LightGray,
+                                fontSize = 11.sp
                             )
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                    // ONLY Save to File button
-                    CyberButton(
-                        text = "Save to File",
-                        icon = Icons.Default.FileDownload,
-                        onClick = onSaveToFile,
+                    // Truncated preview to prevent Compose render overhead
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 160.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFF050B07))
+                            .border(BorderStroke(1.dp, Color(0xFF1B3824)), RoundedCornerShape(8.dp))
+                            .padding(10.dp)
+                    ) {
+                        Text(
+                            text = displayedSample,
+                            style = TextStyle(
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 12.sp,
+                                color = MatrixTextCode,
+                                lineHeight = 16.sp
+                            ),
+                            modifier = Modifier.verticalScroll(rememberScrollState())
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        accentColor = MatrixGreenPrimary,
-                        testTag = "save_file_only_button"
-                    )
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CyberButton(
+                            text = "Copy (Confirm)",
+                            icon = Icons.Default.ContentCopy,
+                            onClick = { showCopyConfirmDialog = true },
+                            modifier = Modifier.weight(1f),
+                            accentColor = CyberAmber,
+                            testTag = "copy_output_long_confirm_button"
+                        )
+                        CyberButton(
+                            text = "Save to File ★",
+                            icon = Icons.Default.FileDownload,
+                            onClick = onSaveToFile,
+                            modifier = Modifier.weight(1.2f),
+                            accentColor = MatrixGreenPrimary,
+                            testTag = "save_file_only_button"
+                        )
+                    }
                 }
             }
         }

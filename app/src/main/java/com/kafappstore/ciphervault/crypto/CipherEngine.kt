@@ -49,6 +49,34 @@ object CipherEngine {
     private val secureRandom = SecureRandom()
 
     /**
+     * Evaluates password strength for Standalone Mode (without secret key).
+     * Requirements: length >= 14, uppercase, lowercase, number, symbol.
+     */
+    fun evaluatePasswordStrength(password: String): Triple<Boolean, Int, List<String>> {
+        val missing = mutableListOf<String>()
+        val hasLength = password.length >= 14
+        val hasUpper = password.any { it.isUpperCase() }
+        val hasLower = password.any { it.isLowerCase() }
+        val hasDigit = password.any { it.isDigit() }
+        val hasSpecial = password.any { !it.isLetterOrDigit() }
+
+        if (!hasLength) missing.add("Minimum 14 characters (current: ${password.length})")
+        if (!hasUpper) missing.add("At least one uppercase letter (A-Z)")
+        if (!hasLower) missing.add("At least one lowercase letter (a-z)")
+        if (!hasDigit) missing.add("At least one digit (0-9)")
+        if (!hasSpecial) missing.add("At least one symbol / special character (!@#$)")
+
+        var score = 0
+        if (hasLength) score++
+        if (hasUpper && hasLower) score++
+        if (hasDigit) score++
+        if (hasSpecial) score++
+
+        val isVeryStrong = hasLength && hasUpper && hasLower && hasDigit && hasSpecial
+        return Triple(isVeryStrong, score, missing)
+    }
+
+    /**
      * Derives a 256-bit key using PBKDF2-HMAC-SHA256 with 600,000 iterations.
      */
     fun deriveKey(secret: String, salt: ByteArray, iterations: Int = PBKDF2_ITERATIONS): ByteArray {
@@ -61,6 +89,19 @@ object CipherEngine {
         } finally {
             passwordBytes.fill(0)
         }
+    }
+
+    /**
+     * Derives ChaCha20 key. In Standalone Mode (empty pepper), uses an internal cryptographic salt-expansion
+     * domain separator so AES and ChaCha keys are cryptographically distinct.
+     */
+    fun deriveChachaKey(password: String, pepper: String, salt: ByteArray): ByteArray {
+        val effectiveSecret = if (pepper.isEmpty()) {
+            "$password#CVLT_STANDALONE_NO_PEPPER"
+        } else {
+            password + pepper
+        }
+        return deriveKey(effectiveSecret, salt)
     }
 
     /**
@@ -154,8 +195,13 @@ object CipherEngine {
         password: String,
         pepper: String = DEFAULT_PEPPER
     ): Result<String> {
-        if (password.length !in 12..22) {
-            return Result.failure(IllegalArgumentException("Password length must be between 12 and 22 characters."))
+        if (pepper.isEmpty()) {
+            val strength = evaluatePasswordStrength(password)
+            if (!strength.first) {
+                return Result.failure(IllegalArgumentException("Standalone encryption requires a very strong password: ${strength.third.joinToString(", ")}"))
+            }
+        } else if (password.length !in 12..64) {
+            return Result.failure(IllegalArgumentException("Password length must be between 12 and 64 characters."))
         }
         if (plaintext.isEmpty()) {
             return Result.failure(IllegalArgumentException("Input text cannot be empty."))
@@ -169,7 +215,7 @@ object CipherEngine {
 
             // Key Derivation
             aesKey = deriveKey(password, salt)
-            chachaKey = deriveKey(password + pepper, salt)
+            chachaKey = deriveChachaKey(password, pepper, salt)
 
             val plaintextBytes = plaintext.toByteArray(Charsets.UTF_8)
 
@@ -218,11 +264,29 @@ object CipherEngine {
     /**
      * Full Cascaded Decryption
      * Takes Base64 encoded payload and password, returns original plaintext.
+     * Automatically attempts standard pepper and standalone (no pepper) fallback.
      */
     fun decrypt(
         base64Payload: String,
         password: String,
         pepper: String = DEFAULT_PEPPER
+    ): Result<String> {
+        val firstAttempt = decryptInternal(base64Payload, password, pepper)
+        if (firstAttempt.isSuccess) return firstAttempt
+
+        // Fallback: If configured with a non-empty pepper, try Standalone mode (pepper = "")
+        if (pepper.isNotEmpty()) {
+            val standaloneAttempt = decryptInternal(base64Payload, password, "")
+            if (standaloneAttempt.isSuccess) return standaloneAttempt
+        }
+
+        return firstAttempt
+    }
+
+    private fun decryptInternal(
+        base64Payload: String,
+        password: String,
+        pepper: String
     ): Result<String> {
         val cleanPayload = base64Payload.trim().replace("\n", "").replace("\r", "")
         if (cleanPayload.isEmpty()) {
@@ -249,7 +313,7 @@ object CipherEngine {
 
             // Key Derivation
             aesKey = deriveKey(password, salt)
-            chachaKey = deriveKey(password + pepper, salt)
+            chachaKey = deriveChachaKey(password, pepper, salt)
 
             // Reverse Stage 3: XOR
             val stage2Ciphertext = applyXorTransformation(stage3Ciphertext, chachaKey, iv, salt)
@@ -316,8 +380,13 @@ object CipherEngine {
         totalBytes: Long = -1L,
         onProgress: (bytesProcessed: Long, totalBytes: Long, progressPercent: Float) -> Unit = { _, _, _ -> }
     ): Result<StreamingResult> {
-        if (password.length !in 12..22) {
-            return Result.failure(IllegalArgumentException("Password length must be between 12 and 22 characters."))
+        if (pepper.isEmpty()) {
+            val strength = evaluatePasswordStrength(password)
+            if (!strength.first) {
+                return Result.failure(IllegalArgumentException("Standalone encryption requires a very strong password: ${strength.third.joinToString(", ")}"))
+            }
+        } else if (password.length !in 12..64) {
+            return Result.failure(IllegalArgumentException("Password length must be between 12 and 64 characters."))
         }
 
         val startTime = System.currentTimeMillis()
@@ -329,7 +398,7 @@ object CipherEngine {
             val baseIv = ByteArray(IV_SIZE).apply { secureRandom.nextBytes(this) }
 
             aesKey = deriveKey(password, salt)
-            chachaKey = deriveKey(password + pepper, salt)
+            chachaKey = deriveChachaKey(password, pepper, salt)
 
             val outData = DataOutputStream(outputStream)
 
@@ -339,8 +408,9 @@ object CipherEngine {
             outData.write(salt)
             outData.write(baseIv)
 
-            // Encrypted Metadata Header
-            val metaString = "$originalFileName|$originalExtension|${System.currentTimeMillis()}"
+            // Encrypted Metadata Header (includes standalone flag)
+            val isStandalone = pepper.isEmpty()
+            val metaString = "$originalFileName|$originalExtension|${System.currentTimeMillis()}|${if (isStandalone) "standalone" else "pepper"}"
             val encMeta = encryptAesGcm(metaString.toByteArray(Charsets.UTF_8), aesKey, baseIv)
             outData.writeShort(encMeta.size)
             outData.write(encMeta)
@@ -424,6 +494,63 @@ object CipherEngine {
     }
 
     /**
+     * Inspects stream header and extracts metadata (filename, extension) if password is valid,
+     * without writing chunks.
+     */
+    fun peekStreamMetadata(
+        inputStream: InputStream,
+        password: String
+    ): Result<StreamingDecryptedMetadata> {
+        return try {
+            val inData = DataInputStream(inputStream)
+            val magic = ByteArray(4)
+            inData.readFully(magic)
+            if (!magic.contentEquals(STREAM_MAGIC)) {
+                return Result.failure(IllegalArgumentException("Invalid file format or incompatible CipherVault signature."))
+            }
+            val version = inData.readByte()
+            if (version.toInt() != STREAM_VERSION.toInt()) {
+                return Result.failure(IllegalArgumentException("Unsupported cipher stream format version."))
+            }
+            val salt = ByteArray(SALT_SIZE)
+            inData.readFully(salt)
+            val baseIv = ByteArray(IV_SIZE)
+            inData.readFully(baseIv)
+
+            val aesKey = deriveKey(password, salt)
+            val metaLen = inData.readShort().toInt() and 0xFFFF
+            if (metaLen <= 0 || metaLen > 4096) {
+                return Result.failure(SecurityException("Incorrect password or corrupted file header."))
+            }
+            val encMeta = ByteArray(metaLen)
+            inData.readFully(encMeta)
+
+            val metaPlainBytes = try {
+                decryptAesGcm(encMeta, aesKey, baseIv)
+            } catch (e: Exception) {
+                return Result.failure(SecurityException("Incorrect password or corrupted file."))
+            }
+
+            val metaString = String(metaPlainBytes, Charsets.UTF_8)
+            val metaParts = metaString.split("|")
+            val originalName = metaParts.getOrElse(0) { "decrypted_file" }
+            val originalExt = metaParts.getOrElse(1) { "bin" }
+
+            Result.success(
+                StreamingDecryptedMetadata(
+                    originalFileName = originalName,
+                    originalExtension = originalExt,
+                    bytesProcessed = 0L,
+                    totalChunks = 0L,
+                    durationMs = 0L
+                )
+            )
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Cascaded Streaming Decryption for arbitrary sized files (supports 1GB+ files with constant ~256KB memory footprint).
      */
     fun decryptStream(
@@ -459,7 +586,6 @@ object CipherEngine {
             inData.readFully(baseIv)
 
             aesKey = deriveKey(password, salt)
-            chachaKey = deriveKey(password + pepper, salt)
 
             // Read Encrypted Metadata
             val metaLen = inData.readShort().toInt() and 0xFFFF
@@ -479,6 +605,10 @@ object CipherEngine {
             val metaParts = metaString.split("|")
             val originalName = metaParts.getOrElse(0) { "decrypted_file" }
             val originalExt = metaParts.getOrElse(1) { "bin" }
+            val isStandalone = metaParts.getOrNull(3) == "standalone"
+
+            val effectivePepper = if (isStandalone) "" else pepper
+            chachaKey = deriveChachaKey(password, effectivePepper, salt)
 
             var chunkIdx = 0L
             var totalProcessed = 0L

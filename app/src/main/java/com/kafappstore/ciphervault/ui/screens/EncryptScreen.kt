@@ -23,6 +23,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudDownload
@@ -30,6 +31,7 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.Visibility
@@ -40,6 +42,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -56,7 +61,10 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.kafappstore.ciphervault.crypto.CipherEngine
 import com.kafappstore.ciphervault.ui.components.ConditionalOutputSection
 import com.kafappstore.ciphervault.ui.components.Cyber3DTab
 import com.kafappstore.ciphervault.ui.components.CyberButton
@@ -64,6 +72,7 @@ import com.kafappstore.ciphervault.ui.components.CyberSecondaryButton
 import com.kafappstore.ciphervault.ui.components.CyberTerminalTextField
 import com.kafappstore.ciphervault.ui.components.LargeFileStreamingSection
 import com.kafappstore.ciphervault.ui.components.PasswordStrengthMeter
+import com.kafappstore.ciphervault.ui.components.StrengthCheckItem
 import com.kafappstore.ciphervault.ui.theme.CyberAmber
 import com.kafappstore.ciphervault.ui.theme.CyberCrimson
 import com.kafappstore.ciphervault.ui.theme.CyberCyan
@@ -288,7 +297,7 @@ fun EncryptScreen(
 
             // Password Section
             Text(
-                text = "Set Encryption Password (12 to 22 chars)",
+                text = if (!state.useSecretKey) "Set Standalone Password (Very Strong Required)" else "Set Encryption Password (12 to 64 chars)",
                 style = MaterialTheme.typography.titleMedium.copy(color = MatrixGreenPrimary)
             )
 
@@ -297,7 +306,7 @@ fun EncryptScreen(
             CyberTerminalTextField(
                 value = state.password,
                 onValueChange = { viewModel.onEncryptPasswordChanged(it) },
-                placeholder = "Enter encryption password...",
+                placeholder = if (!state.useSecretKey) "حداقل ۱۴ کاراکتر با حروف بزرگ و کوچک، عدد و نماد..." else "Enter encryption password...",
                 singleLine = true,
                 maxLines = 1,
                 trailingIcon = {
@@ -318,14 +327,111 @@ fun EncryptScreen(
             // Password Strength Bar
             PasswordStrengthMeter(password = state.password)
 
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Standalone Mode (No Secret Key) Switch Card
+            Surface(
+                color = if (!state.useSecretKey) Color(0xFF14241B) else Color(0xFF09140C),
+                shape = RoundedCornerShape(8.dp),
+                border = BorderStroke(1.dp, if (!state.useSecretKey) MatrixGreenPrimary else Color(0xFF1B3B24)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Shield,
+                                contentDescription = null,
+                                tint = if (!state.useSecretKey) MatrixGreenPrimary else Color.Gray,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "رمزنگاری بدون کلید مخفی (حالت مستقل)",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    color = if (!state.useSecretKey) MatrixGreenPrimary else Color.LightGray,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = if (!state.useSecretKey)
+                                "متن فقط با این رمز عبور باز می‌شود (فاقد وابستگی به کلید مخفی برنامه). نیازمند پسورد بسیار قوی."
+                            else
+                                "استفاده از کلید مخفی برنامه (پیش‌فرض با حداکثر امنیت)",
+                            style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray, fontSize = 10.sp)
+                        )
+                    }
+                    Switch(
+                        checked = !state.useSecretKey,
+                        onCheckedChange = { isStandalone ->
+                            viewModel.toggleEncryptUseSecretKey(!isStandalone)
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MatrixGreenPrimary,
+                            checkedTrackColor = Color(0xFF134E27),
+                            uncheckedThumbColor = Color.Gray,
+                            uncheckedTrackColor = Color(0xFF101C14)
+                        )
+                    )
+                }
+            }
+
+            // Strong Password Criteria Checklist when in Standalone mode
+            if (!state.useSecretKey) {
+                val pw = state.password
+                val cLength = pw.length >= 14
+                val cUpper = pw.any { it.isUpperCase() }
+                val cLower = pw.any { it.isLowerCase() }
+                val cDigit = pw.any { it.isDigit() }
+                val cSpecial = pw.any { !it.isLetterOrDigit() }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Surface(
+                    color = Color(0xFF07140B),
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, Color(0xFF1C3A24)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(10.dp)) {
+                        Text(
+                            text = "الزامات پسورد قوی در حالت بدون کلید مخفی:",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = MatrixGreenPrimary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        StrengthCheckItem(label = "حداقل ۱۴ کاراکتر (${pw.length}/14)", passed = cLength)
+                        StrengthCheckItem(label = "شامل حروف بزرگ انگلیسی (A-Z)", passed = cUpper)
+                        StrengthCheckItem(label = "شامل حروف کوچک انگلیسی (a-z)", passed = cLower)
+                        StrengthCheckItem(label = "شامل حداقل یک رقم عدد (0-9)", passed = cDigit)
+                        StrengthCheckItem(label = "شامل حداقل یک نماد خاص (@#\$%...)", passed = cSpecial)
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(20.dp))
 
             // Big 3D Tactile "Encrypt" Button
+            val strength = remember(state.password) { CipherEngine.evaluatePasswordStrength(state.password) }
+            val isEncryptEnabled = state.inputText.isNotBlank() && !state.isEncrypting && (
+                if (!state.useSecretKey) strength.first else state.password.length in 12..64
+            )
+
             CyberButton(
-                text = "Encrypt Now (3-Layer Cascade)",
+                text = if (!state.useSecretKey) "Encrypt (Standalone Mode)" else "Encrypt Now (3-Layer Cascade)",
                 icon = Icons.Default.Lock,
                 onClick = { viewModel.executeEncrypt() },
-                enabled = state.inputText.isNotBlank() && state.password.length in 12..22 && !state.isEncrypting,
+                enabled = isEncryptEnabled,
                 isLoading = state.isEncrypting,
                 modifier = Modifier.fillMaxWidth(),
                 accentColor = MatrixGreenPrimary,
