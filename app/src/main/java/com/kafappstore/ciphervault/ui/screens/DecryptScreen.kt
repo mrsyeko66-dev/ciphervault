@@ -132,9 +132,10 @@ fun DecryptScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
-                        value = if (saveProjectTitle.isEmpty()) defaultTitle else saveProjectTitle,
+                        value = saveProjectTitle,
                         onValueChange = { saveProjectTitle = it },
                         label = { Text("Project Title") },
+                        placeholder = { Text(defaultTitle) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )

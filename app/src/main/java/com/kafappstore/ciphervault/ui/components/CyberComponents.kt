@@ -511,9 +511,9 @@ fun PasswordStrengthMeter(
 
     val strengthScore = when {
         length < 12 -> 0
-        length in 12..22 && ((hasUpper && hasLower && hasDigit) || hasSpecial) && length >= 16 -> 3 // Strong
-        length in 12..22 && ((hasUpper && hasLower) || (hasLower && hasDigit)) -> 2 // Medium
-        length in 12..22 -> 1 // Weak
+        length in 12..64 && ((hasUpper && hasLower && hasDigit) || hasSpecial) && length >= 16 -> 3 // Strong
+        length in 12..64 && ((hasUpper && hasLower) || (hasLower && hasDigit)) -> 2 // Medium
+        length in 12..64 -> 1 // Weak
         else -> 0
     }
 
@@ -521,8 +521,8 @@ fun PasswordStrengthMeter(
         3 -> "Strong (Maximum Security)" to MatrixGreenPrimary
         2 -> "Moderate (Acceptable)" to CyberCyan
         1 -> "Weak (Improvement Advised)" to CyberAmber
-        else -> if (length == 0) "Enter 12 to 22 characters" to Color(0xFF5A7864)
-                else "Password length must be 12-22" to CyberCrimson
+        else -> if (length == 0) "Enter 12 to 64 characters" to Color(0xFF5A7864)
+                else "Password length must be 12-64" to CyberCrimson
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -536,9 +536,9 @@ fun PasswordStrengthMeter(
                 style = MaterialTheme.typography.labelSmall.copy(color = color)
             )
             Text(
-                text = "$length / 22 characters",
+                text = "$length / 64 characters",
                 style = MaterialTheme.typography.labelSmall.copy(
-                    color = if (length in 12..22) MatrixGreenPrimary else CyberCrimson
+                    color = if (length in 12..64) MatrixGreenPrimary else CyberCrimson
                 )
             )
         }
