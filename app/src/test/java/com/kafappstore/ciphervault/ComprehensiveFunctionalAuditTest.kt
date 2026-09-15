@@ -263,4 +263,21 @@ class ComprehensiveFunctionalAuditTest {
         assertFalse("Standalone ChaCha key must be distinct from AES key", aesKey.contentEquals(standaloneChachaKey))
         assertFalse("Standalone ChaCha key must be distinct from peppered ChaCha key", chachaKey.contentEquals(standaloneChachaKey))
     }
+
+    @Test
+    fun testPasswordWhitespaceSensitivity() {
+        val basePassword = "MySecurePassword2026!#"
+        val passwordWithSpaces = "  MySecurePassword2026!#  "
+
+        val enc = CipherEngine.encrypt("Sensitive Document", basePassword, defaultPepper).getOrThrow()
+
+        // Decrypt with untrimmed spaced password fails
+        val decWithSpaces = CipherEngine.decrypt(enc, passwordWithSpaces, defaultPepper)
+        assertFalse("Decryption with untrimmed spaces must fail", decWithSpaces.isSuccess)
+
+        // Decrypt with trimmed password succeeds
+        val decTrimmed = CipherEngine.decrypt(enc, passwordWithSpaces.trim(), defaultPepper)
+        assertTrue("Decryption with trimmed password must succeed", decTrimmed.isSuccess)
+        assertEquals("Sensitive Document", decTrimmed.getOrThrow())
+    }
 }

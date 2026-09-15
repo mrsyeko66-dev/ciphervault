@@ -97,6 +97,7 @@ fun CyberButton(
     icon: ImageVector? = null,
     enabled: Boolean = true,
     isLoading: Boolean = false,
+    loadingText: String? = null,
     accentColor: Color = MatrixGreenPrimary,
     depth: Dp = 3.5.dp,
     testTag: String = "cyber_button"
@@ -197,7 +198,7 @@ fun CyberButton(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Processing...",
+                        text = loadingText ?: "Processing...",
                         style = MaterialTheme.typography.labelLarge.copy(
                             color = contentColor,
                             fontWeight = FontWeight.Bold,
@@ -561,6 +562,136 @@ fun PasswordStrengthMeter(
                         .clip(CircleShape)
                         .background(stepColor)
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Visual warning indicator and quick trim action when password contains leading or trailing whitespaces.
+ */
+@Composable
+fun PasswordWhitespaceWarning(
+    password: String,
+    onTrimPassword: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val hasLeadingSpace = password.isNotEmpty() && password.first().isWhitespace()
+    val hasTrailingSpace = password.isNotEmpty() && password.last().isWhitespace()
+
+    if (hasLeadingSpace || hasTrailingSpace) {
+        val message = when {
+            hasLeadingSpace && hasTrailingSpace -> "هشدار: رمز عبور دارای فاصله خالی در ابتدا و انتها است!"
+            hasLeadingSpace -> "هشدار: رمز عبور دارای فاصله خالی در ابتدا است!"
+            else -> "هشدار: رمز عبور دارای فاصله خالی در انتها است!"
+        }
+
+        Surface(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            color = Color(0xFF261D07),
+            shape = RoundedCornerShape(8.dp),
+            border = BorderStroke(1.dp, CyberAmber.copy(alpha = 0.8f))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = CyberAmber,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = CyberAmber,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Surface(
+                    onClick = onTrimPassword,
+                    shape = RoundedCornerShape(6.dp),
+                    color = CyberAmber.copy(alpha = 0.2f),
+                    border = BorderStroke(1.dp, CyberAmber)
+                ) {
+                    Text(
+                        text = "حذف فاصله (Trim)",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = Color(0xFFFFD54F),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.5.sp
+                        ),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Explicit visual indicator showing key derivation progression (PBKDF2 600,000 rounds).
+ */
+@Composable
+fun KeyDerivationIndicator(
+    isDeriving: Boolean,
+    modifier: Modifier = Modifier,
+    accentColor: Color = MatrixGreenPrimary
+) {
+    if (isDeriving) {
+        Surface(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(vertical = 6.dp),
+            color = Color(0xFF08150D),
+            shape = RoundedCornerShape(8.dp),
+            border = BorderStroke(1.dp, accentColor.copy(alpha = 0.6f))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = accentColor
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = "در حال محاسبه کلیدهای ۶۰۰k دور (PBKDF2-HMAC-SHA256)...",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = accentColor,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.5.sp
+                        )
+                    )
+                    Text(
+                        text = "مشتق‌سازی امن کلید ۲۵۶ بیتی در برابر حملات بروت‌فورس",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = Color.LightGray,
+                            fontSize = 10.sp
+                        )
+                    )
+                }
             }
         }
     }

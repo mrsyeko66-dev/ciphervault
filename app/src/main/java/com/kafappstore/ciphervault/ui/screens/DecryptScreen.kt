@@ -68,7 +68,9 @@ import com.kafappstore.ciphervault.ui.components.Cyber3DTab
 import com.kafappstore.ciphervault.ui.components.CyberButton
 import com.kafappstore.ciphervault.ui.components.CyberSecondaryButton
 import com.kafappstore.ciphervault.ui.components.CyberTerminalTextField
+import com.kafappstore.ciphervault.ui.components.KeyDerivationIndicator
 import com.kafappstore.ciphervault.ui.components.LargeFileStreamingSection
+import com.kafappstore.ciphervault.ui.components.PasswordWhitespaceWarning
 import com.kafappstore.ciphervault.ui.theme.CyberAmber
 import com.kafappstore.ciphervault.ui.theme.CyberCrimson
 import com.kafappstore.ciphervault.ui.theme.CyberCyan
@@ -358,6 +360,12 @@ fun DecryptScreen(
                 testTag = "decrypt_password_input"
             )
 
+            // Password whitespace warning & trim
+            PasswordWhitespaceWarning(
+                password = state.password,
+                onTrimPassword = { viewModel.onDecryptPasswordChanged(state.password.trim()) }
+            )
+
             Spacer(modifier = Modifier.height(20.dp))
 
             // Big 3D "Decrypt" Button
@@ -367,9 +375,16 @@ fun DecryptScreen(
                 onClick = { viewModel.executeDecrypt() },
                 enabled = state.inputBase64.isNotBlank() && state.password.isNotEmpty() && !state.isDecrypting,
                 isLoading = state.isDecrypting,
+                loadingText = "در حال محاسبه کلیدهای ۶۰۰k دور...",
                 modifier = Modifier.fillMaxWidth(),
                 accentColor = CyberCyan,
                 testTag = "execute_decrypt_button"
+            )
+
+            // Key Derivation Indicator
+            KeyDerivationIndicator(
+                isDeriving = state.isDecrypting,
+                accentColor = CyberCyan
             )
 
             // Error message: when password is wrong

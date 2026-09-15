@@ -403,6 +403,12 @@ fun LargeFileStreamingSection(
                         modifier = Modifier.fillMaxWidth()
                     )
 
+                    // Whitespace warning & trim for file streaming password
+                    PasswordWhitespaceWarning(
+                        password = streamingState.password,
+                        onTrimPassword = { viewModel.onStreamingPasswordChanged(streamingState.password.trim()) }
+                    )
+
                     if (!isDecryptionMode) {
                         Spacer(modifier = Modifier.height(8.dp))
                         PasswordStrengthMeter(password = streamingState.password)
@@ -575,6 +581,14 @@ fun LargeFileStreamingSection(
                                 fontFamily = FontFamily.Monospace,
                                 fontWeight = FontWeight.Bold
                             )
+                        )
+                    }
+
+                    // Key Derivation Notice during initial phase
+                    if (streamingState.bytesProcessed == 0L) {
+                        KeyDerivationIndicator(
+                            isDeriving = true,
+                            accentColor = if (isDecryptionMode) CyberCyan else MatrixGreenPrimary
                         )
                     }
 

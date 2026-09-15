@@ -70,8 +70,10 @@ import com.kafappstore.ciphervault.ui.components.Cyber3DTab
 import com.kafappstore.ciphervault.ui.components.CyberButton
 import com.kafappstore.ciphervault.ui.components.CyberSecondaryButton
 import com.kafappstore.ciphervault.ui.components.CyberTerminalTextField
+import com.kafappstore.ciphervault.ui.components.KeyDerivationIndicator
 import com.kafappstore.ciphervault.ui.components.LargeFileStreamingSection
 import com.kafappstore.ciphervault.ui.components.PasswordStrengthMeter
+import com.kafappstore.ciphervault.ui.components.PasswordWhitespaceWarning
 import com.kafappstore.ciphervault.ui.components.StrengthCheckItem
 import com.kafappstore.ciphervault.ui.theme.CyberAmber
 import com.kafappstore.ciphervault.ui.theme.CyberCrimson
@@ -322,6 +324,12 @@ fun EncryptScreen(
                 testTag = "encrypt_password_input"
             )
 
+            // Password whitespace warning & trim
+            PasswordWhitespaceWarning(
+                password = state.password,
+                onTrimPassword = { viewModel.onEncryptPasswordChanged(state.password.trim()) }
+            )
+
             Spacer(modifier = Modifier.height(8.dp))
 
             // Password Strength Bar
@@ -433,9 +441,16 @@ fun EncryptScreen(
                 onClick = { viewModel.executeEncrypt() },
                 enabled = isEncryptEnabled,
                 isLoading = state.isEncrypting,
+                loadingText = "در حال محاسبه کلیدهای ۶۰۰k دور...",
                 modifier = Modifier.fillMaxWidth(),
                 accentColor = MatrixGreenPrimary,
                 testTag = "execute_encrypt_button"
+            )
+
+            // Key Derivation Indicator
+            KeyDerivationIndicator(
+                isDeriving = state.isEncrypting,
+                accentColor = MatrixGreenPrimary
             )
 
             // Error message if any
