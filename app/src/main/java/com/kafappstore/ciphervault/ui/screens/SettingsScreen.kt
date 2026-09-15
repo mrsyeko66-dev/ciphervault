@@ -20,15 +20,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -39,7 +39,6 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -61,6 +60,7 @@ import androidx.compose.ui.unit.sp
 import com.kafappstore.ciphervault.crypto.CipherEngine
 import com.kafappstore.ciphervault.data.CyberThemeMode
 import com.kafappstore.ciphervault.ui.components.CyberButton
+import com.kafappstore.ciphervault.ui.components.CyberSecondaryButton
 import com.kafappstore.ciphervault.ui.theme.CyberAmber
 import com.kafappstore.ciphervault.ui.theme.CyberCyan
 import com.kafappstore.ciphervault.ui.theme.MatrixBorderNeon
@@ -121,22 +121,24 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Key length: ${editedPepper.length} chars",
+                            text = "Length: ${editedPepper.length} chars",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 color = if (editedPepper.length >= 8) MatrixGreenPrimary else CyberAmber
                             )
                         )
-                        TextButton(
+                        CyberSecondaryButton(
+                            text = "Paste Key",
+                            icon = Icons.Default.ContentCopy,
                             onClick = {
                                 val clip = clipboardManager.getText()?.text
                                 if (!clip.isNullOrBlank()) {
                                     editedPepper = clip.trim()
                                     Toast.makeText(context, "Key pasted from clipboard", Toast.LENGTH_SHORT).show()
                                 }
-                            }
-                        ) {
-                            Text("Paste from Clipboard", color = CyberCyan, fontSize = 11.sp)
-                        }
+                            },
+                            accentColor = CyberCyan,
+                            depth = 2.5.dp
+                        )
                     }
                     if (editedPepper.length < 8 && editedPepper.isNotEmpty()) {
                         Text(
@@ -147,7 +149,9 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                Button(
+                CyberButton(
+                    text = "Save Key",
+                    icon = Icons.Default.VpnKey,
                     onClick = {
                         val trimmed = editedPepper.trim()
                         if (trimmed.isEmpty()) {
@@ -158,22 +162,22 @@ fun SettingsScreen(
                             Toast.makeText(context, "Secret key saved successfully.", Toast.LENGTH_SHORT).show()
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = MatrixGreenPrimary)
-                ) {
-                    Text("Save Key", color = Color.Black)
-                }
+                    accentColor = MatrixGreenPrimary,
+                    depth = 3.5.dp
+                )
             },
             dismissButton = {
-                TextButton(
+                CyberSecondaryButton(
+                    text = "Reset Default",
+                    icon = Icons.Default.Refresh,
                     onClick = {
                         viewModel.resetPepper()
                         editedPepper = CipherEngine.DEFAULT_PEPPER
                         showPepperDialog = false
                         Toast.makeText(context, "Pepper reset to system default.", Toast.LENGTH_SHORT).show()
-                    }
-                ) {
-                    Text("Reset to Default", color = CyberCyan)
-                }
+                    },
+                    accentColor = CyberCyan
+                )
             },
             containerColor = Color(0xFF0F1A14),
             shape = RoundedCornerShape(12.dp)
@@ -265,22 +269,28 @@ fun SettingsScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Primary full-width 3D key button
+                CyberButton(
+                    text = "Edit Secret Key (Pepper)",
+                    icon = Icons.Default.Edit,
+                    onClick = {
+                        editedPepper = settings.pepper
+                        showPepperDialog = true
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    accentColor = CyberAmber
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Secondary 3D action row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    CyberButton(
-                        text = "Set / Edit Key",
-                        onClick = {
-                            editedPepper = settings.pepper
-                            showPepperDialog = true
-                        },
-                        modifier = Modifier.weight(1.3f),
-                        accentColor = CyberAmber
-                    )
-
-                    CyberButton(
+                    CyberSecondaryButton(
                         text = "Copy Key",
                         icon = Icons.Default.ContentCopy,
                         onClick = {
@@ -291,8 +301,8 @@ fun SettingsScreen(
                         accentColor = MatrixGreenPrimary
                     )
 
-                    CyberButton(
-                        text = "Default",
+                    CyberSecondaryButton(
+                        text = "Reset Default",
                         icon = Icons.Default.Refresh,
                         onClick = {
                             viewModel.resetPepper()

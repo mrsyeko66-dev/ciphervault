@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
@@ -35,7 +36,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -113,13 +113,17 @@ fun ProjectsScreen(
                         projectToDelete = null
                     },
                     accentColor = CyberCrimson,
+                    depth = 3.5.dp,
                     testTag = "btn_confirm_delete_project"
                 )
             },
             dismissButton = {
-                TextButton(onClick = { projectToDelete = null }) {
-                    Text("Cancel", color = Color.Gray)
-                }
+                CyberSecondaryButton(
+                    text = "Cancel",
+                    icon = Icons.Default.Close,
+                    onClick = { projectToDelete = null },
+                    accentColor = Color.LightGray
+                )
             },
             containerColor = Color(0xFF14070A)
         )
@@ -136,22 +140,30 @@ fun ProjectsScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 8.dp)
+            ) {
                 Text(
                     text = "Projects & Drafts",
                     style = MaterialTheme.typography.titleMedium.copy(
                         color = MatrixGreenPrimary,
                         fontWeight = FontWeight.Bold
-                    )
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "${projects.size} projects stored in local database",
-                    style = MaterialTheme.typography.labelSmall.copy(color = Color(0xFF6B8A74))
+                    text = "${projects.size} saved locally",
+                    style = MaterialTheme.typography.labelSmall.copy(color = Color(0xFF6B8A74)),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
             CyberButton(
-                text = "New Project",
+                text = "New",
                 icon = Icons.Default.Add,
                 onClick = {
                     viewModel.clearEditorContent()

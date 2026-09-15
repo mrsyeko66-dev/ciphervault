@@ -5,9 +5,12 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -22,25 +25,27 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -48,7 +53,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,7 +62,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -70,6 +73,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kafappstore.ciphervault.ui.theme.CyberAmber
@@ -81,7 +86,8 @@ import com.kafappstore.ciphervault.ui.theme.MatrixTextCode
 import kotlin.random.Random
 
 /**
- * 3D Tactile Cyber Button with Glowing Borders and Press Depth
+ * Duolingo-Style 3D Tactile Cyber Button with Obsidian Black & Matrix Green Theme
+ * Features a physical base extrusion plate, dynamic press-down travel, and single-line text protection.
  */
 @Composable
 fun CyberButton(
@@ -92,43 +98,53 @@ fun CyberButton(
     enabled: Boolean = true,
     isLoading: Boolean = false,
     accentColor: Color = MatrixGreenPrimary,
+    depth: Dp = 3.5.dp,
     testTag: String = "cyber_button"
 ) {
     val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    val buttonShape = RoundedCornerShape(12.dp)
+    // Tactile push-down depth animation (Duolingo style)
+    val pressOffset by animateDpAsState(
+        targetValue = if (isPressed && enabled && !isLoading) depth else 0.dp,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh),
+        label = "cyber_button_offset"
+    )
 
-    // Dynamic 3D depth shift
-    val elevation = if (isPressed) 2.dp else 6.dp
-    val glowColor = if (enabled) accentColor.copy(alpha = if (isPressed) 0.8f else 0.4f) else Color.Transparent
+    val buttonShape = RoundedCornerShape(10.dp)
 
-    val backgroundBrush = if (enabled) {
-        Brush.verticalGradient(
-            colors = if (isPressed) {
-                listOf(accentColor.copy(alpha = 0.25f), accentColor.copy(alpha = 0.10f))
-            } else {
-                listOf(accentColor.copy(alpha = 0.20f), accentColor.copy(alpha = 0.05f))
-            }
-        )
-    } else {
-        Brush.verticalGradient(listOf(Color(0xFF1B241E), Color(0xFF141A16)))
+    // Base extrusion rim (dark saturated 3D platform beneath the button)
+    val baseExtrusionColor = remember(accentColor, enabled) {
+        if (!enabled) Color(0xFF0C140E)
+        else when (accentColor) {
+            MatrixGreenPrimary -> Color(0xFF003814)
+            CyberCyan -> Color(0xFF003440)
+            CyberAmber -> Color(0xFF422C00)
+            CyberCrimson -> Color(0xFF420715)
+            else -> Color(0xFF082B14)
+        }
     }
+
+    // Top face matrix background
+    val faceBg = remember(accentColor, enabled) {
+        if (!enabled) Color(0xFF131A15)
+        else when (accentColor) {
+            MatrixGreenPrimary -> Color(0xFF07140B)
+            CyberCyan -> Color(0xFF061418)
+            CyberAmber -> Color(0xFF141005)
+            CyberCrimson -> Color(0xFF140508)
+            else -> Color(0xFF0A160E)
+        }
+    }
+
+    val borderColor = if (enabled) accentColor.copy(alpha = 0.85f) else Color(0x334C7356)
+    val contentColor = if (enabled) accentColor else Color(0xFF5B7363)
 
     Box(
         modifier = modifier
             .testTag(testTag)
-            .shadow(elevation = elevation, shape = buttonShape, spotColor = glowColor, ambientColor = glowColor)
-            .clip(buttonShape)
-            .background(backgroundBrush)
-            .border(
-                BorderStroke(
-                    width = if (isPressed) 2.dp else 1.5.dp,
-                    color = if (enabled) accentColor.copy(alpha = if (isPressed) 0.95f else 0.7f) else Color(0x334C7356)
-                ),
-                shape = buttonShape
-            )
+            .defaultMinSize(minHeight = 40.dp)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -136,53 +152,91 @@ fun CyberButton(
             ) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 onClick()
-            }
-            .padding(vertical = 14.dp, horizontal = 20.dp),
+            },
         contentAlignment = Alignment.Center
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+        // 1. Bottom Extrusion Plate (The Duolingo 3D lower rim)
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .padding(top = depth)
+                .clip(buttonShape)
+                .background(baseExtrusionColor)
+                .border(BorderStroke(1.2.dp, borderColor.copy(alpha = 0.45f)), buttonShape)
+        )
+
+        // 2. Raised Top Face (Shifts down on press)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .offset(y = pressOffset)
+                .padding(bottom = depth)
+                .clip(buttonShape)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            faceBg.copy(alpha = 0.95f),
+                            faceBg
+                        )
+                    )
+                )
+                .border(BorderStroke(1.3.dp, borderColor), buttonShape)
+                .padding(vertical = 8.dp, horizontal = 8.dp),
+            contentAlignment = Alignment.Center
         ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.dp,
-                    color = accentColor
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = "Processing...",
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        color = accentColor,
-                        fontWeight = FontWeight.Bold
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(15.dp),
+                        strokeWidth = 2.dp,
+                        color = accentColor
                     )
-                )
-            } else {
-                if (icon != null) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = if (enabled) accentColor else Color(0xFF6B8071),
-                        modifier = Modifier.size(20.dp)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Processing...",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            color = contentColor,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        ),
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
                     )
-                    Spacer(modifier = Modifier.width(10.dp))
+                } else {
+                    if (icon != null) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = contentColor,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                    }
+                    Text(
+                        text = text,
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            color = contentColor,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            letterSpacing = 0.3.sp
+                        ),
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
-                Text(
-                    text = text,
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        color = if (enabled) accentColor else Color(0xFF6B8071),
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.5.sp
-                    )
-                )
             }
         }
     }
 }
 
 /**
- * Compact Tactical Secondary Cyber Action Button
+ * Compact Tactical Secondary Cyber Action Button in 3D Duolingo Style
  */
 @Composable
 fun CyberSecondaryButton(
@@ -191,38 +245,205 @@ fun CyberSecondaryButton(
     icon: ImageVector,
     modifier: Modifier = Modifier,
     accentColor: Color = MatrixGreenPrimary,
+    enabled: Boolean = true,
+    depth: Dp = 3.dp,
     testTag: String = "secondary_button"
 ) {
     val haptic = LocalHapticFeedback.current
-    val shape = RoundedCornerShape(8.dp)
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
 
-    Row(
+    val pressOffset by animateDpAsState(
+        targetValue = if (isPressed && enabled) depth else 0.dp,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh),
+        label = "sec_button_offset"
+    )
+
+    val baseExtrusionColor = remember(accentColor, enabled) {
+        if (!enabled) Color(0xFF0C140E)
+        else when (accentColor) {
+            MatrixGreenPrimary -> Color(0xFF003011)
+            CyberCyan -> Color(0xFF002B36)
+            CyberAmber -> Color(0xFF382500)
+            CyberCrimson -> Color(0xFF380612)
+            else -> Color(0xFF072410)
+        }
+    }
+
+    val faceBg = remember(accentColor, enabled) {
+        if (!enabled) Color(0xFF131A15)
+        else when (accentColor) {
+            MatrixGreenPrimary -> Color(0xFF08150D)
+            CyberCyan -> Color(0xFF06151A)
+            CyberAmber -> Color(0xFF141005)
+            CyberCrimson -> Color(0xFF15060A)
+            else -> Color(0xFF0B140E)
+        }
+    }
+
+    val shape = RoundedCornerShape(8.dp)
+    val borderColor = if (enabled) accentColor.copy(alpha = 0.8f) else Color(0x334C7356)
+    val contentColor = if (enabled) accentColor else Color(0xFF5B7363)
+
+    Box(
         modifier = modifier
             .testTag(testTag)
+            .defaultMinSize(minHeight = 34.dp)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                enabled = enabled
+            ) {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onClick()
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        // 1. Bottom Extrusion Plate
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .padding(top = depth)
+                .clip(shape)
+                .background(baseExtrusionColor)
+                .border(BorderStroke(1.dp, borderColor.copy(alpha = 0.4f)), shape)
+        )
+
+        // 2. Raised Top Face
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .offset(y = pressOffset)
+                .padding(bottom = depth)
+                .clip(shape)
+                .background(faceBg)
+                .border(BorderStroke(1.2.dp, borderColor), shape)
+                .padding(horizontal = 7.dp, vertical = 6.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = contentColor,
+                    modifier = Modifier.size(13.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        color = contentColor,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp
+                    ),
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 3D Duolingo Tactile Submode Switch Tab (Text vs File Streaming)
+ */
+@Composable
+fun Cyber3DTab(
+    text: String,
+    icon: ImageVector,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    accentColor: Color = MatrixGreenPrimary
+) {
+    val haptic = LocalHapticFeedback.current
+    val depth = 3.5.dp
+    val shape = RoundedCornerShape(9.dp)
+
+    val offset by animateDpAsState(
+        targetValue = if (selected) depth else 0.dp,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh),
+        label = "tab_3d_offset"
+    )
+
+    Box(
+        modifier = modifier
+            .defaultMinSize(minHeight = 40.dp)
             .clip(shape)
-            .background(Color(0xFF0D1812))
-            .border(BorderStroke(1.dp, accentColor.copy(alpha = 0.4f)), shape)
             .clickable {
                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 onClick()
-            }
-            .padding(horizontal = 10.dp, vertical = 7.dp),
-        verticalAlignment = Alignment.CenterVertically
+            },
+        contentAlignment = Alignment.Center
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = accentColor,
-            modifier = Modifier.size(15.dp)
+        // Base plate (depth rim)
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .padding(top = depth)
+                .clip(shape)
+                .background(if (selected) Color(0xFF003814) else Color(0xFF0A140E))
+                .border(
+                    BorderStroke(
+                        1.dp,
+                        if (selected) accentColor.copy(alpha = 0.5f) else MatrixBorderNeon.copy(alpha = 0.3f)
+                    ),
+                    shape
+                )
         )
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelMedium.copy(
-                color = accentColor,
-                fontWeight = FontWeight.Medium
-            )
-        )
+
+        // Top face
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .offset(y = offset)
+                .padding(bottom = depth)
+                .clip(shape)
+                .background(
+                    if (selected) {
+                        Brush.verticalGradient(listOf(accentColor, accentColor.copy(alpha = 0.85f)))
+                    } else {
+                        Brush.verticalGradient(listOf(Color(0xFF0F1E14), Color(0xFF08120B)))
+                    }
+                )
+                .border(
+                    BorderStroke(
+                        1.2.dp,
+                        if (selected) accentColor else MatrixBorderNeon.copy(alpha = 0.5f)
+                    ),
+                    shape
+                )
+                .padding(vertical = 7.dp, horizontal = 6.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = if (selected) Color.Black else Color.LightGray,
+                    modifier = Modifier.size(15.dp)
+                )
+                Spacer(modifier = Modifier.width(5.dp))
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = if (selected) Color.Black else Color.LightGray,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.5.sp
+                    ),
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
     }
 }
 
@@ -384,20 +605,25 @@ fun ConditionalOutputSection(
                 )
             },
             confirmButton = {
-                Button(
+                CyberButton(
+                    text = "Copy Anyway",
+                    icon = Icons.Default.ContentCopy,
                     onClick = {
                         showCopyConfirmDialog = false
                         onCopy()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = MatrixGreenPrimary)
-                ) {
-                    Text("Copy", color = Color.Black)
-                }
+                    accentColor = MatrixGreenPrimary,
+                    depth = 3.5.dp,
+                    modifier = Modifier.widthIn(min = 120.dp)
+                )
             },
             dismissButton = {
-                TextButton(onClick = { showCopyConfirmDialog = false }) {
-                    Text("Cancel", color = Color.Gray)
-                }
+                CyberSecondaryButton(
+                    text = "Cancel",
+                    icon = Icons.Default.Close,
+                    onClick = { showCopyConfirmDialog = false },
+                    accentColor = Color.LightGray
+                )
             },
             containerColor = Color(0xFF101B15),
             shape = RoundedCornerShape(12.dp)
@@ -470,7 +696,7 @@ fun ConditionalOutputSection(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         CyberButton(
-                            text = "Copy to Clipboard",
+                            text = "Copy Text",
                             icon = Icons.Default.ContentCopy,
                             onClick = onCopy,
                             modifier = Modifier.weight(1f),
@@ -478,7 +704,7 @@ fun ConditionalOutputSection(
                             testTag = "copy_output_button"
                         )
                         CyberButton(
-                            text = "Save to File",
+                            text = "Save File",
                             icon = Icons.Default.FileDownload,
                             onClick = onSaveToFile,
                             modifier = Modifier.weight(1f),
@@ -603,7 +829,7 @@ fun ConditionalOutputSection(
 
                     // ONLY Save to File button
                     CyberButton(
-                        text = "Save to File (Storage Access Framework)",
+                        text = "Save to File",
                         icon = Icons.Default.FileDownload,
                         onClick = onSaveToFile,
                         modifier = Modifier.fillMaxWidth(),

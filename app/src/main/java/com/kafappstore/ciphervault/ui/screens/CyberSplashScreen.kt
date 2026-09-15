@@ -73,6 +73,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kafappstore.ciphervault.R
+import com.kafappstore.ciphervault.ui.components.CyberSecondaryButton
 import com.kafappstore.ciphervault.ui.theme.CyberAmber
 import com.kafappstore.ciphervault.ui.theme.CyberCyan
 import com.kafappstore.ciphervault.ui.theme.MatrixBorderNeon
@@ -506,28 +507,14 @@ fun CyberSplashScreen(
                 }
 
                 // Skip Button
-                Surface(
+                CyberSecondaryButton(
+                    text = "SKIP >>",
+                    icon = Icons.Default.FastForward,
                     onClick = onFinish,
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color(0xCC09180E),
-                    border = BorderStroke(1.dp, MatrixBorderNeon),
-                    modifier = Modifier.testTag("splash_skip_button")
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "SKIP >>",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = MatrixGreenPrimary,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 11.sp
-                            )
-                        )
-                    }
-                }
+                    accentColor = MatrixGreenPrimary,
+                    depth = 3.dp,
+                    testTag = "splash_skip_button"
+                )
             }
 
             // Middle Section: Terminal Output Window

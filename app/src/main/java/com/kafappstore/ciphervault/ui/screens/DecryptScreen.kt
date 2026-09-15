@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.EditNote
@@ -42,7 +43,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -63,6 +63,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kafappstore.ciphervault.ui.components.Cyber3DTab
 import com.kafappstore.ciphervault.ui.components.CyberButton
 import com.kafappstore.ciphervault.ui.components.CyberSecondaryButton
 import com.kafappstore.ciphervault.ui.components.CyberTerminalTextField
@@ -139,7 +140,7 @@ fun DecryptScreen(
             },
             confirmButton = {
                 CyberButton(
-                    text = "Save to Database",
+                    text = "Save Project",
                     icon = Icons.Default.Folder,
                     onClick = {
                         val title = if (saveProjectTitle.isEmpty()) defaultTitle else saveProjectTitle
@@ -149,13 +150,17 @@ fun DecryptScreen(
                         }
                     },
                     accentColor = CyberCyan,
+                    depth = 3.5.dp,
                     testTag = "btn_save_decrypted_project"
                 )
             },
             dismissButton = {
-                TextButton(onClick = { showSaveToProjectDialog = false }) {
-                    Text("Cancel", color = Color.Gray)
-                }
+                CyberSecondaryButton(
+                    text = "Cancel",
+                    icon = Icons.Default.Close,
+                    onClick = { showSaveToProjectDialog = false },
+                    accentColor = Color.LightGray
+                )
             },
             containerColor = Color(0xFF091417)
         )
@@ -167,68 +172,28 @@ fun DecryptScreen(
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        // Mode Selector: Text vs Large Files Streaming
+        // Mode Selector: Text vs Large Files Streaming (Duolingo 3D Tabs)
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFF071109))
-                .border(BorderStroke(1.dp, MatrixBorderNeon), RoundedCornerShape(8.dp))
-                .padding(4.dp)
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(if (decryptSubMode == 0) CyberCyan else Color.Transparent)
-                    .clickable { decryptSubMode = 0 }
-                    .padding(vertical = 8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.TextFields,
-                        contentDescription = null,
-                        tint = if (decryptSubMode == 0) Color.Black else Color.LightGray,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Base64 String",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = if (decryptSubMode == 0) Color.Black else Color.LightGray,
-                            fontWeight = FontWeight.Bold
-                        )
-                    )
-                }
-            }
+            Cyber3DTab(
+                text = "Text (Base64)",
+                icon = Icons.Default.TextFields,
+                selected = decryptSubMode == 0,
+                onClick = { decryptSubMode = 0 },
+                modifier = Modifier.weight(1f),
+                accentColor = CyberCyan
+            )
 
-            Box(
-                modifier = Modifier
-                    .weight(1.3f)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(if (decryptSubMode == 1) CyberCyan else Color.Transparent)
-                    .clickable { decryptSubMode = 1 }
-                    .padding(vertical = 8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Speed,
-                        contentDescription = null,
-                        tint = if (decryptSubMode == 1) Color.Black else Color.LightGray,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Large File (Up to 1GB+)",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = if (decryptSubMode == 1) Color.Black else Color.LightGray,
-                            fontWeight = FontWeight.Bold
-                        )
-                    )
-                }
-            }
+            Cyber3DTab(
+                text = "Large File (1GB+)",
+                icon = Icons.Default.Speed,
+                selected = decryptSubMode == 1,
+                onClick = { decryptSubMode = 1 },
+                modifier = Modifier.weight(1f),
+                accentColor = CyberCyan
+            )
         }
 
         Spacer(modifier = Modifier.height(14.dp))
@@ -241,17 +206,19 @@ fun DecryptScreen(
             )
         } else {
             // Text Base64 Decryption
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = "Encrypted Base64 String",
                     style = MaterialTheme.typography.titleMedium.copy(color = CyberCyan)
                 )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     CyberSecondaryButton(
                         text = "File",
                         icon = Icons.Default.Description,
@@ -261,6 +228,7 @@ fun DecryptScreen(
                             )
                         },
                         accentColor = CyberCyan,
+                        modifier = Modifier.weight(1f),
                         testTag = "decrypt_from_file_btn"
                     )
 
@@ -269,6 +237,7 @@ fun DecryptScreen(
                         icon = Icons.Default.Clear,
                         onClick = { viewModel.clearDecrypt() },
                         accentColor = CyberCrimson,
+                        modifier = Modifier.weight(1f),
                         testTag = "decrypt_clear_btn"
                     )
                 }
@@ -431,7 +400,7 @@ fun DecryptScreen(
                             )
 
                             CyberButton(
-                                text = "Save to File",
+                                text = "Save File",
                                 icon = Icons.Default.FileDownload,
                                 onClick = {
                                     saveFileLauncher.launch("ciphervault_decrypted_${System.currentTimeMillis()}.txt")
@@ -450,7 +419,7 @@ fun DecryptScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             CyberSecondaryButton(
-                                text = "Save to Projects",
+                                text = "Save Project",
                                 icon = Icons.Default.Folder,
                                 onClick = { showSaveToProjectDialog = true },
                                 modifier = Modifier.weight(1f),
@@ -459,7 +428,7 @@ fun DecryptScreen(
                             )
 
                             CyberSecondaryButton(
-                                text = "Open in Editor",
+                                text = "Open Editor",
                                 icon = Icons.Default.EditNote,
                                 onClick = {
                                     viewModel.openDecryptedInEditor()

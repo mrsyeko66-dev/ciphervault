@@ -43,7 +43,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -60,6 +59,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kafappstore.ciphervault.ui.theme.CyberAmber
@@ -125,7 +125,10 @@ fun LargeFileStreamingSection(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Speed,
                             contentDescription = null,
@@ -134,16 +137,20 @@ fun LargeFileStreamingSection(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (isDecryptionMode) "Streaming Large File Decryption (Up to 1GB+)" else "Streaming Large File Encryption (Up to 1GB+)",
+                            text = if (isDecryptionMode) "Streaming Decryption" else "Streaming Encryption",
                             style = MaterialTheme.typography.titleSmall.copy(
                                 color = if (isDecryptionMode) CyberCyan else MatrixGreenPrimary,
                                 fontWeight = FontWeight.Bold
-                            )
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
 
+                    Spacer(modifier = Modifier.width(6.dp))
+
                     CyberSecondaryButton(
-                        text = "Format Guide",
+                        text = "Guide",
                         icon = Icons.Default.HelpOutline,
                         onClick = { showFormatsGuideDialog = true },
                         accentColor = CyberAmber,
@@ -194,7 +201,7 @@ fun LargeFileStreamingSection(
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         CyberButton(
-                            text = "Select File from Device",
+                            text = "Select File",
                             icon = Icons.Default.FolderOpen,
                             onClick = {
                                 openAnyFileLauncher.launch(arrayOf("*/*"))
@@ -210,37 +217,42 @@ fun LargeFileStreamingSection(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(end = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Description,
                                 contentDescription = null,
                                 tint = if (isDecryptionMode) CyberCyan else MatrixGreenPrimary,
-                                modifier = Modifier.size(30.dp)
+                                modifier = Modifier.size(28.dp)
                             )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column(modifier = Modifier.weight(1f, fill = false)) {
                                 Text(
                                     text = streamingState.selectedFileName,
                                     style = MaterialTheme.typography.bodyMedium.copy(
                                         color = Color.White,
                                         fontWeight = FontWeight.Bold
                                     ),
-                                    maxLines = 1
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
                                     text = "Size: ${viewModel.formatFileSize(streamingState.selectedFileSize)}",
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         color = MatrixTextCode,
                                         fontFamily = FontFamily.Monospace
-                                    )
+                                    ),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
 
                         CyberSecondaryButton(
-                            text = "Change File",
+                            text = "Change",
                             icon = Icons.Default.FolderOpen,
                             onClick = { openAnyFileLauncher.launch(arrayOf("*/*")) },
                             accentColor = Color.LightGray,
@@ -383,7 +395,7 @@ fun LargeFileStreamingSection(
                     (if (isDecryptionMode) streamingState.password.isNotEmpty() else streamingState.password.length in 12..22)
 
             CyberButton(
-                text = if (isDecryptionMode) "Start File Decryption & Save" else "Start Streaming Encryption & Save",
+                text = if (isDecryptionMode) "Decrypt File & Save" else "Encrypt File & Save",
                 icon = if (isDecryptionMode) Icons.Default.LockOpen else Icons.Default.Lock,
                 onClick = {
                     val defaultName = if (isDecryptionMode) {
@@ -606,9 +618,13 @@ fun FileFormatsGuideDialog(onDismiss: () -> Unit) {
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Got It", color = MatrixGreenPrimary)
-            }
+            CyberButton(
+                text = "Got It",
+                icon = Icons.Default.CheckCircle,
+                onClick = onDismiss,
+                accentColor = MatrixGreenPrimary,
+                depth = 3.5.dp
+            )
         },
         containerColor = Color(0xFF0C1710)
     )

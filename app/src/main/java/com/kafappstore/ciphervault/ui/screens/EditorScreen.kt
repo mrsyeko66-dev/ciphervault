@@ -5,11 +5,10 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -71,7 +70,6 @@ import com.kafappstore.ciphervault.ui.theme.MatrixGreenPrimary
 import com.kafappstore.ciphervault.ui.theme.MatrixTextCode
 import com.kafappstore.ciphervault.viewmodel.CipherViewModel
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun EditorScreen(
     viewModel: CipherViewModel,
@@ -145,13 +143,17 @@ fun EditorScreen(
                         }
                     },
                     accentColor = MatrixGreenPrimary,
+                    depth = 3.5.dp,
                     testTag = "btn_dialog_save_confirm"
                 )
             },
             dismissButton = {
-                TextButton(onClick = { showSaveDialog = false }) {
-                    Text("Cancel", color = Color.Gray)
-                }
+                CyberSecondaryButton(
+                    text = "Cancel",
+                    icon = Icons.Default.Close,
+                    onClick = { showSaveDialog = false },
+                    accentColor = Color.LightGray
+                )
             },
             containerColor = Color(0xFF0D1C13)
         )
@@ -199,7 +201,7 @@ fun EditorScreen(
                     }
 
                     Text(
-                        text = "Tag: ${editorState.tag} | Stats: $lineCount lines | $wordCount words | $charCount chars",
+                        text = "Tag: ${editorState.tag} | Stats: $wordCount words | $charCount chars",
                         style = MaterialTheme.typography.labelSmall.copy(
                             color = Color(0xFF7B9984),
                             fontFamily = FontFamily.Monospace,
@@ -307,11 +309,12 @@ fun EditorScreen(
 
         Spacer(modifier = Modifier.height(6.dp))
 
-        // Quick Insert Toolbelt
-        FlowRow(
+        // Quick Insert Toolbelt (Side-by-side horizontal row)
+        Row(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
         ) {
             CyberSecondaryButton(
                 text = "+ Time",
@@ -322,7 +325,7 @@ fun EditorScreen(
             )
 
             CyberSecondaryButton(
-                text = "+ Security Header",
+                text = "+ Header",
                 icon = Icons.Default.Security,
                 onClick = { viewModel.insertEditorSecurityHeader() },
                 accentColor = CyberAmber,
@@ -359,7 +362,7 @@ fun EditorScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Main Editor Surface with Line Numbers Gutter
+        // Main Editor Surface without line numbers
         Surface(
             color = Color(0xFF050C07),
             shape = RoundedCornerShape(8.dp),
@@ -368,59 +371,24 @@ fun EditorScreen(
                 .weight(1f)
                 .fillMaxWidth()
         ) {
-            val totalLines = remember(editorState.content) {
-                (editorState.content.count { it == '\n' } + 1).coerceAtLeast(1)
-            }
-
-            Row(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(8.dp)
+                    .padding(12.dp)
             ) {
-                // Line Numbers Gutter
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    modifier = Modifier
-                        .width(36.dp)
-                        .padding(end = 8.dp)
-                ) {
-                    for (i in 1..totalLines) {
-                        Text(
-                            text = "$i",
-                            style = TextStyle(
-                                color = Color(0xFF33553C),
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp,
-                                lineHeight = 20.sp
-                            )
-                        )
-                    }
-                }
-
-                // Vertical Divider
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .height((totalLines * 20).coerceAtLeast(40).dp)
-                        .background(Color(0xFF1B3322))
-                )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // Editable Area
                 BasicTextField(
                     value = editorState.content,
                     onValueChange = { viewModel.onEditorContentChanged(it) },
                     textStyle = TextStyle(
                         color = Color(0xFFD4E6D9),
                         fontFamily = FontFamily.Monospace,
-                        fontSize = 12.sp,
-                        lineHeight = 20.sp
+                        fontSize = 13.sp,
+                        lineHeight = 21.sp
                     ),
                     cursorBrush = SolidColor(MatrixGreenPrimary),
                     modifier = Modifier
-                        .weight(1f)
+                        .fillMaxWidth()
                         .testTag("editor_text_input"),
                     decorationBox = { innerTextField ->
                         if (editorState.content.isEmpty()) {
@@ -429,8 +397,8 @@ fun EditorScreen(
                                 style = TextStyle(
                                     color = Color(0xFF4A6B53),
                                     fontFamily = FontFamily.Monospace,
-                                    fontSize = 12.sp,
-                                    lineHeight = 20.sp
+                                    fontSize = 13.sp,
+                                    lineHeight = 21.sp
                                 )
                             )
                         }
@@ -448,7 +416,7 @@ fun EditorScreen(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             CyberButton(
-                text = "Direct Encrypt This Text",
+                text = "Encrypt Text",
                 icon = Icons.Default.Lock,
                 onClick = {
                     viewModel.sendEditorToEncrypt()
@@ -456,12 +424,12 @@ fun EditorScreen(
                 },
                 enabled = editorState.content.isNotBlank(),
                 accentColor = MatrixGreenPrimary,
-                modifier = Modifier.weight(1.3f),
+                modifier = Modifier.weight(1.2f),
                 testTag = "btn_editor_direct_encrypt"
             )
 
             CyberSecondaryButton(
-                text = "Save to Projects",
+                text = "Save Project",
                 icon = Icons.Default.Save,
                 onClick = {
                     saveTitleInput = editorState.title

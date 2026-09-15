@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.EditNote
@@ -34,15 +35,12 @@ import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -60,6 +58,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.kafappstore.ciphervault.ui.components.ConditionalOutputSection
+import com.kafappstore.ciphervault.ui.components.Cyber3DTab
 import com.kafappstore.ciphervault.ui.components.CyberButton
 import com.kafappstore.ciphervault.ui.components.CyberSecondaryButton
 import com.kafappstore.ciphervault.ui.components.CyberTerminalTextField
@@ -142,25 +141,24 @@ fun EncryptScreen(
                 }
             },
             confirmButton = {
-                Button(
+                CyberButton(
+                    text = "Fetch Text",
+                    icon = Icons.Default.CloudDownload,
                     onClick = { viewModel.downloadUrlContent() },
                     enabled = !isDownloadingUrl,
-                    colors = ButtonDefaults.buttonColors(containerColor = CyberCyan)
-                ) {
-                    if (isDownloadingUrl) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.Black, strokeWidth = 2.dp)
-                    } else {
-                        Text("Fetch Text", color = Color.Black)
-                    }
-                }
+                    isLoading = isDownloadingUrl,
+                    accentColor = CyberCyan,
+                    depth = 3.5.dp
+                )
             },
             dismissButton = {
-                TextButton(
+                CyberSecondaryButton(
+                    text = "Cancel",
+                    icon = Icons.Default.Close,
                     onClick = { viewModel.closeUrlDialog() },
-                    enabled = !isDownloadingUrl
-                ) {
-                    Text("Cancel", color = Color.Gray)
-                }
+                    enabled = !isDownloadingUrl,
+                    accentColor = Color.LightGray
+                )
             },
             containerColor = Color(0xFF0F1A14),
             shape = RoundedCornerShape(12.dp)
@@ -173,68 +171,26 @@ fun EncryptScreen(
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        // Mode Selector: Text vs Large Files Streaming
+        // Mode Selector: Text vs Large Files Streaming (Duolingo 3D Tabs)
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFF071109))
-                .border(BorderStroke(1.dp, MatrixBorderNeon), RoundedCornerShape(8.dp))
-                .padding(4.dp)
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(if (encryptSubMode == 0) MatrixGreenPrimary else Color.Transparent)
-                    .clickable { encryptSubMode = 0 }
-                    .padding(vertical = 8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.TextFields,
-                        contentDescription = null,
-                        tint = if (encryptSubMode == 0) Color.Black else Color.LightGray,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Text & Drafts",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = if (encryptSubMode == 0) Color.Black else Color.LightGray,
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                        )
-                    )
-                }
-            }
+            Cyber3DTab(
+                text = "Text & Drafts",
+                icon = Icons.Default.TextFields,
+                selected = encryptSubMode == 0,
+                onClick = { encryptSubMode = 0 },
+                modifier = Modifier.weight(1f)
+            )
 
-            Box(
-                modifier = Modifier
-                    .weight(1.3f)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(if (encryptSubMode == 1) MatrixGreenPrimary else Color.Transparent)
-                    .clickable { encryptSubMode = 1 }
-                    .padding(vertical = 8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Speed,
-                        contentDescription = null,
-                        tint = if (encryptSubMode == 1) Color.Black else Color.LightGray,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Large File (Up to 1GB+)",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = if (encryptSubMode == 1) Color.Black else Color.LightGray,
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                        )
-                    )
-                }
-            }
+            Cyber3DTab(
+                text = "Large File (1GB+)",
+                icon = Icons.Default.Speed,
+                selected = encryptSubMode == 1,
+                onClick = { encryptSubMode = 1 },
+                modifier = Modifier.weight(1f)
+            )
         }
 
         Spacer(modifier = Modifier.height(14.dp))
@@ -247,23 +203,26 @@ fun EncryptScreen(
             )
         } else {
             // Text & Draft Encryption Section
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = "Data Input for Encryption",
                     style = MaterialTheme.typography.titleMedium.copy(color = MatrixGreenPrimary)
                 )
 
-                // Utility Action Buttons
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Utility Action Buttons - Responsive 3D row where each button has equal weight and never cramps
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     CyberSecondaryButton(
                         text = "Editor",
                         icon = Icons.Default.EditNote,
                         onClick = onNavigateToEditor,
                         accentColor = MatrixGreenPrimary,
+                        modifier = Modifier.weight(1f),
                         testTag = "encrypt_open_editor_btn"
                     )
 
@@ -276,6 +235,7 @@ fun EncryptScreen(
                             )
                         },
                         accentColor = CyberCyan,
+                        modifier = Modifier.weight(1f),
                         testTag = "encrypt_from_file_btn"
                     )
 
@@ -284,6 +244,7 @@ fun EncryptScreen(
                         icon = Icons.Default.CloudDownload,
                         onClick = { viewModel.openUrlDialog() },
                         accentColor = CyberAmber,
+                        modifier = Modifier.weight(1f),
                         testTag = "encrypt_from_url_btn"
                     )
 
@@ -292,6 +253,7 @@ fun EncryptScreen(
                         icon = Icons.Default.Clear,
                         onClick = { viewModel.clearEncrypt() },
                         accentColor = CyberCrimson,
+                        modifier = Modifier.weight(1f),
                         testTag = "encrypt_clear_btn"
                     )
                 }
