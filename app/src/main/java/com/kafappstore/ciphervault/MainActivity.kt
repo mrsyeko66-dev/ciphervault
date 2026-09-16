@@ -1,13 +1,18 @@
 package com.kafappstore.ciphervault
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.fragment.app.FragmentActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import com.kafappstore.ciphervault.ui.components.BiometricLockOverlay
+import com.kafappstore.ciphervault.util.BiometricAuthHelper
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -83,7 +88,9 @@ import com.kafappstore.ciphervault.ui.theme.MatrixBorderNeon
 import com.kafappstore.ciphervault.ui.theme.MatrixGreenPrimary
 import com.kafappstore.ciphervault.viewmodel.CipherViewModel
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
+
+    private var activeViewModel: CipherViewModel? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -93,27 +100,125 @@ class MainActivity : ComponentActivity() {
         val database = CipherVaultDatabase.getDatabase(applicationContext)
         val projectRepo = ProjectRepository(database.projectDao())
 
+        // Apply initial FLAG_SECURE based on security settings
+        if (settingsRepo.settings.value.screenSecurityEnabled) {
+            window.setFlags(
+                WindowManager.LayoutParams.FLAG_SECURE,
+                WindowManager.LayoutParams.FLAG_SECURE
+            )
+        }
+
         setContent {
             val viewModel: CipherViewModel = viewModel(
                 factory = CipherViewModel.Factory(settingsRepo, projectRepo)
             )
+            activeViewModel = viewModel
+
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                handleIntent(intent, viewModel)
+                viewModel.initAppLock()
+            }
 
             val settings by viewModel.settings.collectAsState()
             val isShowingSplash by viewModel.isShowingSplash.collectAsState()
+            val isAppLocked by viewModel.isAppLocked.collectAsState()
+
+            // Dynamic FLAG_SECURE synchronization with user preference
+            androidx.compose.runtime.LaunchedEffect(settings.screenSecurityEnabled) {
+                if (settings.screenSecurityEnabled) {
+                    window.setFlags(
+                        WindowManager.LayoutParams.FLAG_SECURE,
+                        WindowManager.LayoutParams.FLAG_SECURE
+                    )
+                } else {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                }
+            }
+
+            // Trigger biometric prompt when locked
+            androidx.compose.runtime.LaunchedEffect(isAppLocked) {
+                if (isAppLocked) {
+                    triggerBiometricAuth(viewModel)
+                }
+            }
 
             CipherVaultTheme(themeMode = settings.themeMode) {
-                AnimatedContent(
-                    targetState = isShowingSplash,
-                    transitionSpec = { fadeIn() togetherWith fadeOut() },
-                    label = "splash_to_main_transition"
-                ) { showingSplash ->
-                    if (showingSplash) {
-                        CyberSplashScreen(
-                            onFinish = { viewModel.finishSplash() }
-                        )
-                    } else {
-                        MainAppScreen(viewModel = viewModel)
+                if (isAppLocked) {
+                    BiometricLockOverlay(
+                        onAuthenticateClick = {
+                            triggerBiometricAuth(viewModel)
+                        }
+                    )
+                } else {
+                    AnimatedContent(
+                        targetState = isShowingSplash,
+                        transitionSpec = { fadeIn() togetherWith fadeOut() },
+                        label = "splash_to_main_transition"
+                    ) { showingSplash ->
+                        if (showingSplash) {
+                            CyberSplashScreen(
+                                onFinish = { viewModel.finishSplash() }
+                            )
+                        } else {
+                            MainAppScreen(viewModel = viewModel)
+                        }
                     }
+                }
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        activeViewModel?.let { vm ->
+            if (vm.settings.value.biometricLockEnabled && !vm.isShowingSplash.value) {
+                vm.lockApp()
+            }
+        }
+    }
+
+    private fun triggerBiometricAuth(viewModel: CipherViewModel) {
+        if (BiometricAuthHelper.isBiometricAvailable(this)) {
+            BiometricAuthHelper.promptBiometric(
+                activity = this,
+                onSuccess = {
+                    viewModel.unlockApp()
+                },
+                onError = { _ ->
+                    // Keep locked
+                }
+            )
+        } else {
+            // If device has no biometric or PIN enrolled, unlock automatically with security notice
+            viewModel.unlockApp()
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        activeViewModel?.let { vm ->
+            handleIntent(intent, vm)
+        }
+    }
+
+    private fun handleIntent(intent: Intent?, viewModel: CipherViewModel) {
+        if (intent == null) return
+        when (intent.action) {
+            Intent.ACTION_SEND -> {
+                if (intent.type?.startsWith("text/") == true) {
+                    val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
+                    if (!sharedText.isNullOrBlank()) {
+                        viewModel.handleIncomingSharedText(sharedText)
+                        viewModel.finishSplash()
+                    }
+                }
+            }
+            Intent.ACTION_VIEW -> {
+                val dataUri = intent.data
+                if (dataUri != null) {
+                    viewModel.handleIncomingFileUri(dataUri, contentResolver)
+                    viewModel.finishSplash()
                 }
             }
         }

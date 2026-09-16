@@ -2,6 +2,7 @@ package com.kafappstore.ciphervault.viewmodel
 
 import android.content.ContentResolver
 import android.net.Uri
+import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -136,6 +137,42 @@ class CipherViewModel(
     val urlErrorMessage: StateFlow<String?> = _urlErrorMessage.asStateFlow()
 
     private var autoClearJob: Job? = null
+    private var streamingJob: Job? = null
+    @Volatile
+    private var isStreamingCancelled: Boolean = false
+    private var activeStreamingTargetUri: Uri? = null
+    private var activeStreamingContentResolver: ContentResolver? = null
+
+    fun cancelStreamingOperation() {
+        if (!_streamingState.value.isStreaming) return
+        isStreamingCancelled = true
+        streamingJob?.cancel()
+        val targetUri = activeStreamingTargetUri
+        val cr = activeStreamingContentResolver
+        if (targetUri != null && cr != null) {
+            deleteIncompleteFile(targetUri, cr)
+        }
+        _streamingState.value = _streamingState.value.copy(
+            isStreaming = false,
+            speedMBs = 0f,
+            errorMessage = "عملیات استریم توسط کاربر لغو و فایل ناقص پاکسازی شد (Aborted & Rolled back)."
+        )
+    }
+
+    private fun deleteIncompleteFile(uri: Uri, contentResolver: ContentResolver) {
+        try {
+            if (DocumentsContract.isDocumentUri(null, uri)) {
+                DocumentsContract.deleteDocument(contentResolver, uri)
+            } else {
+                contentResolver.delete(uri, null, null)
+            }
+        } catch (_: Exception) {
+            // Attempt overwrite with empty content if direct delete is unsupported
+            try {
+                contentResolver.openOutputStream(uri, "wt")?.use { /* truncated to 0 */ }
+            } catch (_: Exception) {}
+        }
+    }
 
     fun clearPendingNavigation() {
         _pendingNavigateTab.value = null
@@ -443,7 +480,11 @@ class CipherViewModel(
             encryptResult = null
         )
 
-        viewModelScope.launch(Dispatchers.IO) {
+        isStreamingCancelled = false
+        activeStreamingTargetUri = targetUri
+        activeStreamingContentResolver = contentResolver
+
+        streamingJob = viewModelScope.launch(Dispatchers.IO) {
             var lastTime = System.currentTimeMillis()
             var lastBytes = 0L
 
@@ -457,7 +498,8 @@ class CipherViewModel(
                             pepper = if (useSecret) settings.value.pepper else "",
                             originalFileName = originalName,
                             originalExtension = ext,
-                            totalBytes = st.selectedFileSize
+                            totalBytes = st.selectedFileSize,
+                            isCancelled = { isStreamingCancelled }
                         ) { processed, total, pct ->
                             val now = System.currentTimeMillis()
                             val dt = (now - lastTime).coerceAtLeast(1)
@@ -488,9 +530,15 @@ class CipherViewModel(
                                     )
                                 },
                                 onFailure = { ex ->
+                                    // Automatic cleanup of incomplete file
+                                    deleteIncompleteFile(targetUri, contentResolver)
                                     _streamingState.value = _streamingState.value.copy(
                                         isStreaming = false,
-                                        errorMessage = ex.message ?: "Streaming file encryption error"
+                                        errorMessage = if (isStreamingCancelled) {
+                                            "عملیات استریم لغو و فایل ناقص حذف گردید."
+                                        } else {
+                                            "خطای رمزنگاری استریم: ${ex.message ?: "ناشناخته"} (فایل ناقص پاکسازی شد)"
+                                        }
                                     )
                                 }
                             )
@@ -498,12 +546,21 @@ class CipherViewModel(
                     }
                 }
             } catch (e: Exception) {
+                // Incomplete file cleanup
+                deleteIncompleteFile(targetUri, contentResolver)
                 withContext(Dispatchers.Main) {
                     _streamingState.value = _streamingState.value.copy(
                         isStreaming = false,
-                        errorMessage = "File I/O error: ${e.localizedMessage}"
+                        errorMessage = if (isStreamingCancelled) {
+                            "عملیات استریم لغو و فایل ناقص حذف گردید."
+                        } else {
+                            "خطای ذخیره‌سازی فایل: ${e.localizedMessage} (فایل ناقص پاکسازی شد)"
+                        }
                     )
                 }
+            } finally {
+                activeStreamingTargetUri = null
+                activeStreamingContentResolver = null
             }
         }
     }
@@ -529,7 +586,11 @@ class CipherViewModel(
             decryptResult = null
         )
 
-        viewModelScope.launch(Dispatchers.IO) {
+        isStreamingCancelled = false
+        activeStreamingTargetUri = targetUri
+        activeStreamingContentResolver = contentResolver
+
+        streamingJob = viewModelScope.launch(Dispatchers.IO) {
             var lastTime = System.currentTimeMillis()
             var lastBytes = 0L
 
@@ -541,7 +602,8 @@ class CipherViewModel(
                             outputStream = outputStream,
                             password = password,
                             pepper = settings.value.pepper,
-                            totalBytes = st.selectedFileSize
+                            totalBytes = st.selectedFileSize,
+                            isCancelled = { isStreamingCancelled }
                         ) { processed, total, pct ->
                             val now = System.currentTimeMillis()
                             val dt = (now - lastTime).coerceAtLeast(1)
@@ -571,9 +633,15 @@ class CipherViewModel(
                                     )
                                 },
                                 onFailure = { ex ->
+                                    // Automatic cleanup of incomplete file
+                                    deleteIncompleteFile(targetUri, contentResolver)
                                     _streamingState.value = _streamingState.value.copy(
                                         isStreaming = false,
-                                        errorMessage = ex.message ?: "Incorrect password or corrupted file."
+                                        errorMessage = if (isStreamingCancelled) {
+                                            "عملیات استریم لغو و فایل ناقص حذف گردید."
+                                        } else {
+                                            ex.message ?: "Incorrect password or corrupted file."
+                                        }
                                     )
                                 }
                             )
@@ -581,12 +649,21 @@ class CipherViewModel(
                     }
                 }
             } catch (e: Exception) {
+                // Incomplete file cleanup
+                deleteIncompleteFile(targetUri, contentResolver)
                 withContext(Dispatchers.Main) {
                     _streamingState.value = _streamingState.value.copy(
                         isStreaming = false,
-                        errorMessage = "File read error: ${e.localizedMessage}"
+                        errorMessage = if (isStreamingCancelled) {
+                            "عملیات استریم لغو و فایل ناقص حذف گردید."
+                        } else {
+                            "خطای خواندن/نوشتن فایل: ${e.localizedMessage} (فایل ناقص پاکسازی شد)"
+                        }
                     )
                 }
+            } finally {
+                activeStreamingTargetUri = null
+                activeStreamingContentResolver = null
             }
         }
     }
@@ -754,6 +831,33 @@ class CipherViewModel(
     }
 
     // ==========================================
+    // --- Incoming Intent Handlers ---
+    // ==========================================
+
+    fun handleIncomingSharedText(text: String) {
+        _encryptState.value = _encryptState.value.copy(
+            inputText = text,
+            errorMessage = null,
+            successMessage = "متن دریافتی از برنامه دیگر بارگذاری شد."
+        )
+        _pendingNavigateTab.value = 0 // Terminal Encrypt tab
+    }
+
+    fun handleIncomingFileUri(uri: Uri, contentResolver: ContentResolver) {
+        val (name, size) = queryFileInfo(uri, contentResolver)
+        val lowerName = name.lowercase(Locale.ROOT)
+        val isEncryptedFile = lowerName.endsWith(".cvault") || lowerName.endsWith(".cenc") || lowerName.endsWith(".enc")
+
+        if (isEncryptedFile) {
+            selectFileForStreaming(uri, name, size, isDecryption = true)
+            _pendingNavigateTab.value = 1 // Terminal Decrypt tab
+        } else {
+            selectFileForStreaming(uri, name, size, isDecryption = false)
+            _pendingNavigateTab.value = 0 // Terminal Encrypt tab
+        }
+    }
+
+    // ==========================================
     // --- File Info Query & Helpers ---
     // ==========================================
 
@@ -887,11 +991,32 @@ class CipherViewModel(
     // --- Settings Passthrough ---
     // ==========================================
 
+    private val _isAppLocked = MutableStateFlow(false)
+    val isAppLocked: StateFlow<Boolean> = _isAppLocked.asStateFlow()
+
+    fun initAppLock() {
+        if (settings.value.biometricLockEnabled) {
+            _isAppLocked.value = true
+        }
+    }
+
+    fun unlockApp() {
+        _isAppLocked.value = false
+    }
+
+    fun lockApp() {
+        if (settings.value.biometricLockEnabled) {
+            _isAppLocked.value = true
+        }
+    }
+
     fun updatePepper(newPepper: String) = settingsRepository.updatePepper(newPepper)
     fun resetPepper() = settingsRepository.resetPepperToDefault()
     fun setAutoClear(enabled: Boolean) = settingsRepository.setAutoClearMemory(enabled)
     fun setThreshold(threshold: Int) = settingsRepository.setOutputThreshold(threshold)
     fun setTheme(mode: com.kafappstore.ciphervault.data.CyberThemeMode) = settingsRepository.setThemeMode(mode)
+    fun setBiometricLock(enabled: Boolean) = settingsRepository.setBiometricLockEnabled(enabled)
+    fun setScreenSecurity(enabled: Boolean) = settingsRepository.setScreenSecurityEnabled(enabled)
 
     class Factory(
         private val settingsRepository: SettingsRepository,

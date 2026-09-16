@@ -280,4 +280,39 @@ class ComprehensiveFunctionalAuditTest {
         assertTrue("Decryption with trimmed password must succeed", decTrimmed.isSuccess)
         assertEquals("Sensitive Document", decTrimmed.getOrThrow())
     }
+
+    @Test
+    fun testStreamingAbortAndCancellation() {
+        val largeData = ByteArray(5 * 1024 * 1024) // 5MB simulated file
+        Random(1234).nextBytes(largeData)
+
+        val inStream = ByteArrayInputStream(largeData)
+        val outStream = ByteArrayOutputStream()
+
+        var chunksProcessed = 0
+        var shouldCancel = false
+
+        val encResult = CipherEngine.encryptStream(
+            inputStream = inStream,
+            outputStream = outStream,
+            password = validPassword,
+            pepper = defaultPepper,
+            originalFileName = "large_test.bin",
+            originalExtension = "bin",
+            totalBytes = largeData.size.toLong(),
+            isCancelled = {
+                chunksProcessed++
+                if (chunksProcessed >= 2) {
+                    shouldCancel = true
+                }
+                shouldCancel
+            }
+        )
+
+        assertFalse("Operation should fail/abort when cancelled", encResult.isSuccess)
+        assertTrue(
+            "Exception should indicate cancellation",
+            encResult.exceptionOrNull() is java.util.concurrent.CancellationException
+        )
+    }
 }

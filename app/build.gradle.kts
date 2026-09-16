@@ -118,6 +118,7 @@ dependencies {
   // implementation(libs.moshi.kotlin)
   implementation(libs.okhttp)
   implementation(libs.bouncycastle.bcprov)
+  implementation(libs.androidx.biometric)
   // implementation(libs.play.services.location)
   implementation(libs.retrofit)
   testImplementation(libs.androidx.compose.ui.test.junit4)

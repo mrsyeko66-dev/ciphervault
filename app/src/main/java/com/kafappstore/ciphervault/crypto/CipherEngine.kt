@@ -378,6 +378,7 @@ object CipherEngine {
         originalFileName: String = "",
         originalExtension: String = "bin",
         totalBytes: Long = -1L,
+        isCancelled: () -> Boolean = { false },
         onProgress: (bytesProcessed: Long, totalBytes: Long, progressPercent: Float) -> Unit = { _, _, _ -> }
     ): Result<StreamingResult> {
         if (pepper.isEmpty()) {
@@ -443,6 +444,9 @@ object CipherEngine {
                 chunkIdx = 1L
             } else {
                 while (true) {
+                    if (isCancelled()) {
+                        return Result.failure(java.util.concurrent.CancellationException("Operation cancelled by user."))
+                    }
                     var peekLen = 0
                     while (peekLen < CHUNK_SIZE) {
                         val r = inputStream.read(peekBuf, peekLen, CHUNK_SIZE - peekLen)
@@ -559,6 +563,7 @@ object CipherEngine {
         password: String,
         pepper: String = DEFAULT_PEPPER,
         totalBytes: Long = -1L,
+        isCancelled: () -> Boolean = { false },
         onProgress: (bytesProcessed: Long, totalBytes: Long, progressPercent: Float) -> Unit = { _, _, _ -> }
     ): Result<StreamingDecryptedMetadata> {
         val startTime = System.currentTimeMillis()
@@ -614,6 +619,9 @@ object CipherEngine {
             var totalProcessed = 0L
 
             while (true) {
+                if (isCancelled()) {
+                    return Result.failure(java.util.concurrent.CancellationException("Operation cancelled by user."))
+                }
                 val isLastFlag = inData.readByte().toInt()
                 val chunkSize = inData.readInt()
 

@@ -626,6 +626,20 @@ fun LargeFileStreamingSection(
                             )
                         )
                     }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Cancel / Abort Operation Button
+                    CyberSecondaryButton(
+                        text = "لغو عملیات و بازگردانی (Abort & Cleanup)",
+                        icon = Icons.Default.Close,
+                        onClick = {
+                            viewModel.cancelStreamingOperation()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        accentColor = CyberCrimson,
+                        testTag = "cancel_streaming_button"
+                    )
                 }
             }
         }

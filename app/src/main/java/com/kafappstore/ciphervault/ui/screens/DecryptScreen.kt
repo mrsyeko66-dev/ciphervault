@@ -73,6 +73,7 @@ import com.kafappstore.ciphervault.ui.components.LargeFileStreamingSection
 import com.kafappstore.ciphervault.ui.components.PasswordWhitespaceWarning
 import com.kafappstore.ciphervault.ui.theme.CyberAmber
 import com.kafappstore.ciphervault.ui.theme.CyberCrimson
+import com.kafappstore.ciphervault.util.SecureClipboardHelper
 import com.kafappstore.ciphervault.ui.theme.CyberCyan
 import com.kafappstore.ciphervault.ui.theme.MatrixBorderNeon
 import com.kafappstore.ciphervault.ui.theme.MatrixGreenPrimary
@@ -502,8 +503,13 @@ fun DecryptScreen(
                                 text = "Copy Text",
                                 icon = Icons.Default.ContentCopy,
                                 onClick = {
-                                    clipboardManager.setText(AnnotatedString(plaintext))
-                                    Toast.makeText(context, "Text copied to clipboard.", Toast.LENGTH_SHORT).show()
+                                    SecureClipboardHelper.copyToClipboard(
+                                        context = context,
+                                        label = "CipherVault Plaintext",
+                                        text = plaintext,
+                                        isSensitive = true,
+                                        autoClearSeconds = 45L
+                                    )
                                 },
                                 modifier = Modifier.weight(1f),
                                 accentColor = MatrixGreenPrimary,

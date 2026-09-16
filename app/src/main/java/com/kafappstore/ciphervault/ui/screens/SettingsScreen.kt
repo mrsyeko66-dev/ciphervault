@@ -58,6 +58,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kafappstore.ciphervault.crypto.CipherEngine
+import com.kafappstore.ciphervault.util.SecureClipboardHelper
 import com.kafappstore.ciphervault.data.CyberThemeMode
 import com.kafappstore.ciphervault.ui.components.CyberButton
 import com.kafappstore.ciphervault.ui.components.CyberSecondaryButton
@@ -294,8 +295,14 @@ fun SettingsScreen(
                         text = "Copy Key",
                         icon = Icons.Default.ContentCopy,
                         onClick = {
-                            clipboardManager.setText(AnnotatedString(settings.pepper))
-                            Toast.makeText(context, "Secret key copied to clipboard (store safely).", Toast.LENGTH_SHORT).show()
+                            SecureClipboardHelper.copyToClipboard(
+                                context = context,
+                                label = "CipherVault Pepper Secret Key",
+                                text = settings.pepper,
+                                isSensitive = true,
+                                autoClearSeconds = 30L,
+                                onSuccessMessage = "کلید مخفی کپی شد (پاکسازی خودکار در ۳۰ ثانیه برای امنیت بیشتر)"
+                            )
                         },
                         modifier = Modifier.weight(1f),
                         accentColor = MatrixGreenPrimary
@@ -358,7 +365,107 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 3. Output Threshold Setting
+        // 3. Biometric App Lock Card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(BorderStroke(1.dp, MatrixBorderNeon), RoundedCornerShape(12.dp)),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0C1610)),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Security,
+                            contentDescription = null,
+                            tint = CyberAmber,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "قفل بیومتریک و اثر انگشت",
+                            style = MaterialTheme.typography.titleMedium.copy(color = Color.White)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "هنگام باز شدن برنامه یا بازگشت از پس‌زمینه، هویت با اثر انگشت یا پین سیستمی تایید شود.",
+                        style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF88A391))
+                    )
+                }
+
+                Switch(
+                    checked = settings.biometricLockEnabled,
+                    onCheckedChange = { viewModel.setBiometricLock(it) },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.Black,
+                        checkedTrackColor = CyberAmber,
+                        uncheckedTrackColor = Color(0xFF1B2C21)
+                    )
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 4. Screen Security Card (FLAG_SECURE)
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(BorderStroke(1.dp, MatrixBorderNeon), RoundedCornerShape(12.dp)),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0C1610)),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Security,
+                            contentDescription = null,
+                            tint = CyberCyan,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "محافظت از اسکرین‌شات و Recent Apps",
+                            style = MaterialTheme.typography.titleMedium.copy(color = Color.White)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "فعال‌سازی پرچم FLAG_SECURE جهت مسدودسازی ضبط صفحه، اسکرین‌شات و نمایش محتوا در برنامه‌های اخیر.",
+                        style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF88A391))
+                    )
+                }
+
+                Switch(
+                    checked = settings.screenSecurityEnabled,
+                    onCheckedChange = { viewModel.setScreenSecurity(it) },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.Black,
+                        checkedTrackColor = CyberCyan,
+                        uncheckedTrackColor = Color(0xFF1B2C21)
+                    )
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 5. Output Threshold Setting
         Card(
             modifier = Modifier
                 .fillMaxWidth()

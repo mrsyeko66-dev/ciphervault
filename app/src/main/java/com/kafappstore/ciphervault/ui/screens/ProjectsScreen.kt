@@ -284,20 +284,40 @@ fun ProjectCardItem(
                     )
                 }
 
-                // Tag badge
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(Color(0xFF102617))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        text = project.tag,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = MatrixGreenPrimary,
-                            fontSize = 10.sp
+                // Tags row
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Color(0xFF142018))
+                            .padding(horizontal = 5.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "AES-GCM 🔒",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = CyberCyan,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         )
-                    )
+                    }
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Color(0xFF102617))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = project.tag,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = MatrixGreenPrimary,
+                                fontSize = 10.sp
+                            )
+                        )
+                    }
                 }
             }
 

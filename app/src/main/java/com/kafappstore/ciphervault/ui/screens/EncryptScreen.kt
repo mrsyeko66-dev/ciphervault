@@ -65,6 +65,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kafappstore.ciphervault.crypto.CipherEngine
+import com.kafappstore.ciphervault.util.SecureClipboardHelper
 import com.kafappstore.ciphervault.ui.components.ConditionalOutputSection
 import com.kafappstore.ciphervault.ui.components.Cyber3DTab
 import com.kafappstore.ciphervault.ui.components.CyberButton
@@ -496,8 +497,13 @@ fun EncryptScreen(
                     output = base64Output,
                     threshold = settings.outputThreshold,
                     onCopy = {
-                        clipboardManager.setText(AnnotatedString(base64Output))
-                        Toast.makeText(context, "Base64 output copied to clipboard.", Toast.LENGTH_SHORT).show()
+                        SecureClipboardHelper.copyToClipboard(
+                            context = context,
+                            label = "CipherVault Encrypted Output",
+                            text = base64Output,
+                            isSensitive = true,
+                            autoClearSeconds = 45L
+                        )
                     },
                     onSaveToFile = {
                         saveFileLauncher.launch("ciphervault_encrypted_${System.currentTimeMillis()}.txt")
