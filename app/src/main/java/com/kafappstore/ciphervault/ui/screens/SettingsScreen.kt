@@ -23,11 +23,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.VpnKey
+import com.kafappstore.ciphervault.data.AppLockType
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -36,6 +41,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -79,6 +85,13 @@ fun SettingsScreen(
 
     var showPepperDialog by remember { mutableStateOf(false) }
     var editedPepper by remember(settings.pepper) { mutableStateOf(settings.pepper) }
+
+    // Passcode Configuration Dialog State
+    var showPasscodeDialog by remember { mutableStateOf(false) }
+    var pendingLockType by remember { mutableStateOf(AppLockType.PIN_NUMERIC) }
+    var newPasscodeInput by remember { mutableStateOf("") }
+    var confirmPasscodeInput by remember { mutableStateOf("") }
+    var passcodeDialogError by remember { mutableStateOf<String?>(null) }
 
     // Pepper Edit Dialog
     if (showPepperDialog) {
@@ -178,6 +191,133 @@ fun SettingsScreen(
                         Toast.makeText(context, "Pepper reset to system default.", Toast.LENGTH_SHORT).show()
                     },
                     accentColor = CyberCyan
+                )
+            },
+            containerColor = Color(0xFF0F1A14),
+            shape = RoundedCornerShape(12.dp)
+        )
+    }
+
+    // Passcode Setup Dialog for PIN or Alphanumeric Password
+    if (showPasscodeDialog) {
+        val isPin = pendingLockType == AppLockType.PIN_NUMERIC
+        AlertDialog(
+            onDismissRequest = {
+                showPasscodeDialog = false
+                passcodeDialogError = null
+            },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = if (isPin) Icons.Default.Key else Icons.Default.Password,
+                        contentDescription = null,
+                        tint = MatrixGreenPrimary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (isPin) "Set Numeric PIN" else "Set Master Password",
+                        style = MaterialTheme.typography.titleMedium.copy(color = MatrixGreenPrimary)
+                    )
+                }
+            },
+            text = {
+                Column {
+                    Text(
+                        text = if (isPin)
+                            "Create a numeric PIN (4-8 digits) to secure your vault with on-screen numeric keypad."
+                        else
+                            "Create an alphanumeric password (min 6 characters) to protect your workspace.",
+                        style = MaterialTheme.typography.bodySmall.copy(color = Color.LightGray)
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = newPasscodeInput,
+                        onValueChange = { input ->
+                            if (isPin) {
+                                if (input.all { it.isDigit() } && input.length <= 12) {
+                                    newPasscodeInput = input
+                                    passcodeDialogError = null
+                                }
+                            } else {
+                                newPasscodeInput = input
+                                passcodeDialogError = null
+                            }
+                        },
+                        label = { Text(if (isPin) "New PIN" else "New Password") },
+                        placeholder = { Text(if (isPin) "e.g. 135790" else "e.g. SecretVault2026") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    OutlinedTextField(
+                        value = confirmPasscodeInput,
+                        onValueChange = { input ->
+                            if (isPin) {
+                                if (input.all { it.isDigit() } && input.length <= 12) {
+                                    confirmPasscodeInput = input
+                                    passcodeDialogError = null
+                                }
+                            } else {
+                                confirmPasscodeInput = input
+                                passcodeDialogError = null
+                            }
+                        },
+                        label = { Text(if (isPin) "Confirm PIN" else "Confirm Password") },
+                        placeholder = { Text("Re-enter to confirm") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    passcodeDialogError?.let { err ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = err,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = com.kafappstore.ciphervault.ui.theme.CyberCrimson,
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                CyberButton(
+                    text = "Save Passcode",
+                    icon = Icons.Default.Lock,
+                    onClick = {
+                        if (isPin && (newPasscodeInput.length < 4 || newPasscodeInput.length > 12)) {
+                            passcodeDialogError = "PIN must be between 4 and 12 digits."
+                        } else if (!isPin && newPasscodeInput.length < 6) {
+                            passcodeDialogError = "Password must be at least 6 characters."
+                        } else if (newPasscodeInput != confirmPasscodeInput) {
+                            passcodeDialogError = "Passcodes do not match."
+                        } else {
+                            viewModel.savePasscode(newPasscodeInput)
+                            viewModel.setLockType(pendingLockType)
+                            viewModel.setBiometricLock(true)
+                            showPasscodeDialog = false
+                            passcodeDialogError = null
+                            Toast.makeText(context, "Lock method configured and activated.", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    accentColor = MatrixGreenPrimary,
+                    depth = 3.5.dp
+                )
+            },
+            dismissButton = {
+                CyberSecondaryButton(
+                    text = "Cancel",
+                    icon = Icons.Default.Close,
+                    onClick = {
+                        showPasscodeDialog = false
+                        passcodeDialogError = null
+                    },
+                    accentColor = Color.LightGray
                 )
             },
             containerColor = Color(0xFF0F1A14),
@@ -301,7 +441,7 @@ fun SettingsScreen(
                                 text = settings.pepper,
                                 isSensitive = true,
                                 autoClearSeconds = 30L,
-                                onSuccessMessage = "کلید مخفی کپی شد (پاکسازی خودکار در ۳۰ ثانیه برای امنیت بیشتر)"
+                                onSuccessMessage = "Secret key copied (auto-cleared in 30 seconds for security)"
                             )
                         },
                         modifier = Modifier.weight(1f),
@@ -365,7 +505,7 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 3. Biometric App Lock Card
+        // 3. App Lock & Authentication Method Card
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -373,43 +513,159 @@ fun SettingsScreen(
             colors = CardDefaults.cardColors(containerColor = Color(0xFF0C1610)),
             shape = RoundedCornerShape(12.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Security,
-                            contentDescription = null,
-                            tint = CyberAmber,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
+            Column(modifier = Modifier.padding(14.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Security,
+                                contentDescription = null,
+                                tint = CyberAmber,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Vault Security Lock",
+                                style = MaterialTheme.typography.titleMedium.copy(color = Color.White)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "قفل بیومتریک و اثر انگشت",
-                            style = MaterialTheme.typography.titleMedium.copy(color = Color.White)
+                            text = "Require authentication when launching app or returning from background to secure local projects.",
+                            style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF88A391))
                         )
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "هنگام باز شدن برنامه یا بازگشت از پس‌زمینه، هویت با اثر انگشت یا پین سیستمی تایید شود.",
-                        style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF88A391))
+
+                    Switch(
+                        checked = settings.biometricLockEnabled,
+                        onCheckedChange = { viewModel.setBiometricLock(it) },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.Black,
+                            checkedTrackColor = CyberAmber,
+                            uncheckedTrackColor = Color(0xFF1B2C21)
+                        )
                     )
                 }
 
-                Switch(
-                    checked = settings.biometricLockEnabled,
-                    onCheckedChange = { viewModel.setBiometricLock(it) },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.Black,
-                        checkedTrackColor = CyberAmber,
-                        uncheckedTrackColor = Color(0xFF1B2C21)
+                if (settings.biometricLockEnabled) {
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text(
+                        text = "Authentication Method",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = CyberAmber,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
+                        )
                     )
-                )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    val lockMethods = listOf(
+                        Triple(
+                            AppLockType.BIOMETRIC,
+                            "Biometric / Fingerprint",
+                            Icons.Default.Fingerprint
+                        ),
+                        Triple(
+                            AppLockType.PIN_NUMERIC,
+                            "Numeric PIN (Keypad)",
+                            Icons.Default.Key
+                        ),
+                        Triple(
+                            AppLockType.PASSWORD_ALPHANUMERIC,
+                            "Alphanumeric Password",
+                            Icons.Default.Password
+                        )
+                    )
+
+                    for ((type, label, icon) in lockMethods) {
+                        val isSelected = settings.lockType == type
+                        Surface(
+                            onClick = {
+                                if (type == AppLockType.BIOMETRIC) {
+                                    viewModel.setLockType(AppLockType.BIOMETRIC)
+                                } else {
+                                    pendingLockType = type
+                                    newPasscodeInput = ""
+                                    confirmPasscodeInput = ""
+                                    passcodeDialogError = null
+                                    showPasscodeDialog = true
+                                }
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isSelected) Color(0xFF16251A) else Color(0xFF070F0A),
+                            border = BorderStroke(
+                                if (isSelected) 1.5.dp else 1.dp,
+                                if (isSelected) MatrixGreenPrimary else Color(0xFF1B3623)
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 3.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = null,
+                                        tint = if (isSelected) MatrixGreenPrimary else Color.Gray,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            color = if (isSelected) MatrixGreenPrimary else Color.LightGray,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    )
+                                }
+
+                                if (isSelected) {
+                                    Text(
+                                        text = "Active ✓",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            color = MatrixGreenPrimary,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (settings.lockType != AppLockType.BIOMETRIC) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            CyberSecondaryButton(
+                                text = "Change Passcode",
+                                icon = Icons.Default.Edit,
+                                onClick = {
+                                    pendingLockType = settings.lockType
+                                    newPasscodeInput = ""
+                                    confirmPasscodeInput = ""
+                                    passcodeDialogError = null
+                                    showPasscodeDialog = true
+                                },
+                                accentColor = CyberCyan,
+                                depth = 2.5.dp
+                            )
+                        }
+                    }
+                }
             }
         }
 
@@ -440,13 +696,13 @@ fun SettingsScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "محافظت از اسکرین‌شات و Recent Apps",
+                            text = "Screenshot & Task Switcher Guard",
                             style = MaterialTheme.typography.titleMedium.copy(color = Color.White)
                         )
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "فعال‌سازی پرچم FLAG_SECURE جهت مسدودسازی ضبط صفحه، اسکرین‌شات و نمایش محتوا در برنامه‌های اخیر.",
+                        text = "Enable FLAG_SECURE window flag to block screen recordings, screenshots, and task preview thumbnails.",
                         style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF88A391))
                     )
                 }

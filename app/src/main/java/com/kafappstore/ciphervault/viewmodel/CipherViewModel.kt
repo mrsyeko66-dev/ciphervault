@@ -1016,6 +1016,10 @@ class CipherViewModel(
     fun setThreshold(threshold: Int) = settingsRepository.setOutputThreshold(threshold)
     fun setTheme(mode: com.kafappstore.ciphervault.data.CyberThemeMode) = settingsRepository.setThemeMode(mode)
     fun setBiometricLock(enabled: Boolean) = settingsRepository.setBiometricLockEnabled(enabled)
+    fun setLockType(type: com.kafappstore.ciphervault.data.AppLockType) = settingsRepository.setLockType(type)
+    fun savePasscode(passcode: String) = settingsRepository.savePasscode(passcode)
+    fun verifyPasscode(passcode: String): Boolean = settingsRepository.verifyPasscode(passcode)
+    fun clearPasscode() = settingsRepository.clearPasscode()
     fun setScreenSecurity(enabled: Boolean) = settingsRepository.setScreenSecurityEnabled(enabled)
 
     class Factory(

@@ -14,12 +14,20 @@ enum class CyberThemeMode {
     DEEP_VOID
 }
 
+enum class AppLockType {
+    BIOMETRIC,
+    PIN_NUMERIC,
+    PASSWORD_ALPHANUMERIC
+}
+
 data class AppSettingsState(
     val pepper: String = CipherEngine.DEFAULT_PEPPER,
     val autoClearMemory: Boolean = true,
     val outputThreshold: Int = 3000,
     val themeMode: CyberThemeMode = CyberThemeMode.MATRIX_GREEN,
     val biometricLockEnabled: Boolean = false,
+    val lockType: AppLockType = AppLockType.BIOMETRIC,
+    val hasCustomPasscode: Boolean = false,
     val screenSecurityEnabled: Boolean = true
 )
 
@@ -64,6 +72,8 @@ class SettingsRepository(context: Context) {
         val threshold = prefs.getInt(KEY_OUTPUT_THRESHOLD, 3000)
         val themeName = prefs.getString(KEY_THEME_MODE, CyberThemeMode.MATRIX_GREEN.name)
         val biometricLock = prefs.getBoolean(KEY_BIOMETRIC_LOCK, false)
+        val lockTypeName = prefs.getString(KEY_LOCK_TYPE, AppLockType.BIOMETRIC.name)
+        val hasCustomPasscode = !prefs.getString(KEY_PASSCODE_HASH, null).isNullOrBlank()
         val screenSecurity = prefs.getBoolean(KEY_SCREEN_SECURITY, true)
 
         val theme = try {
@@ -72,12 +82,20 @@ class SettingsRepository(context: Context) {
             CyberThemeMode.MATRIX_GREEN
         }
 
+        val lockType = try {
+            AppLockType.valueOf(lockTypeName ?: AppLockType.BIOMETRIC.name)
+        } catch (_: Exception) {
+            AppLockType.BIOMETRIC
+        }
+
         return AppSettingsState(
             pepper = pepper,
             autoClearMemory = autoClear,
             outputThreshold = threshold,
             themeMode = theme,
             biometricLockEnabled = biometricLock,
+            lockType = lockType,
+            hasCustomPasscode = hasCustomPasscode,
             screenSecurityEnabled = screenSecurity
         )
     }
@@ -119,6 +137,27 @@ class SettingsRepository(context: Context) {
         _settings.value = _settings.value.copy(biometricLockEnabled = enabled)
     }
 
+    fun setLockType(type: AppLockType) {
+        prefs.edit().putString(KEY_LOCK_TYPE, type.name).apply()
+        _settings.value = _settings.value.copy(lockType = type)
+    }
+
+    fun savePasscode(passcode: String) {
+        val hash = com.kafappstore.ciphervault.crypto.AppLockAuthManager.hashPasscode(passcode)
+        prefs.edit().putString(KEY_PASSCODE_HASH, hash).apply()
+        _settings.value = _settings.value.copy(hasCustomPasscode = true)
+    }
+
+    fun verifyPasscode(input: String): Boolean {
+        val storedHash = prefs.getString(KEY_PASSCODE_HASH, null) ?: return false
+        return com.kafappstore.ciphervault.crypto.AppLockAuthManager.verifyPasscode(input, storedHash)
+    }
+
+    fun clearPasscode() {
+        prefs.edit().remove(KEY_PASSCODE_HASH).apply()
+        _settings.value = _settings.value.copy(hasCustomPasscode = false)
+    }
+
     fun setScreenSecurityEnabled(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_SCREEN_SECURITY, enabled).apply()
         _settings.value = _settings.value.copy(screenSecurityEnabled = enabled)
@@ -131,6 +170,8 @@ class SettingsRepository(context: Context) {
         private const val KEY_OUTPUT_THRESHOLD = "key_output_threshold"
         private const val KEY_THEME_MODE = "key_theme_mode"
         private const val KEY_BIOMETRIC_LOCK = "key_biometric_lock"
+        private const val KEY_LOCK_TYPE = "key_lock_type"
+        private const val KEY_PASSCODE_HASH = "key_passcode_hash"
         private const val KEY_SCREEN_SECURITY = "key_screen_security"
     }
 }

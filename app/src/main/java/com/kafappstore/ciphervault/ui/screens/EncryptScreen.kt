@@ -309,7 +309,7 @@ fun EncryptScreen(
             CyberTerminalTextField(
                 value = state.password,
                 onValueChange = { viewModel.onEncryptPasswordChanged(it) },
-                placeholder = if (!state.useSecretKey) "حداقل ۱۴ کاراکتر با حروف بزرگ و کوچک، عدد و نماد..." else "Enter encryption password...",
+                placeholder = if (!state.useSecretKey) "Min 14 chars with upper, lower, digit & symbol..." else "Enter encryption password...",
                 singleLine = true,
                 maxLines = 1,
                 trailingIcon = {
@@ -362,7 +362,7 @@ fun EncryptScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "رمزنگاری بدون کلید مخفی (حالت مستقل)",
+                                text = "Encrypt without Secret Key (Standalone Mode)",
                                 style = MaterialTheme.typography.bodyMedium.copy(
                                     color = if (!state.useSecretKey) MatrixGreenPrimary else Color.LightGray,
                                     fontWeight = FontWeight.Bold,
@@ -373,9 +373,9 @@ fun EncryptScreen(
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = if (!state.useSecretKey)
-                                "متن فقط با این رمز عبور باز می‌شود (فاقد وابستگی به کلید مخفی برنامه). نیازمند پسورد بسیار قوی."
+                                "Data decrypts using password only (no dependency on app's secret pepper). Requires very strong password."
                             else
-                                "استفاده از کلید مخفی برنامه (پیش‌فرض با حداکثر امنیت)",
+                                "Combined with app's secret key (Default with maximum protection)",
                             style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray, fontSize = 10.sp)
                         )
                     }
@@ -412,18 +412,18 @@ fun EncryptScreen(
                 ) {
                     Column(modifier = Modifier.padding(10.dp)) {
                         Text(
-                            text = "الزامات پسورد قوی در حالت بدون کلید مخفی:",
+                            text = "Strong Password Requirements (Standalone Mode):",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 color = MatrixGreenPrimary,
                                 fontWeight = FontWeight.Bold
                             )
                         )
                         Spacer(modifier = Modifier.height(6.dp))
-                        StrengthCheckItem(label = "حداقل ۱۴ کاراکتر (${pw.length}/14)", passed = cLength)
-                        StrengthCheckItem(label = "شامل حروف بزرگ انگلیسی (A-Z)", passed = cUpper)
-                        StrengthCheckItem(label = "شامل حروف کوچک انگلیسی (a-z)", passed = cLower)
-                        StrengthCheckItem(label = "شامل حداقل یک رقم عدد (0-9)", passed = cDigit)
-                        StrengthCheckItem(label = "شامل حداقل یک نماد خاص (@#\$%...)", passed = cSpecial)
+                        StrengthCheckItem(label = "At least 14 characters (${pw.length}/14)", passed = cLength)
+                        StrengthCheckItem(label = "Uppercase letter (A-Z)", passed = cUpper)
+                        StrengthCheckItem(label = "Lowercase letter (a-z)", passed = cLower)
+                        StrengthCheckItem(label = "At least one digit (0-9)", passed = cDigit)
+                        StrengthCheckItem(label = "At least one special symbol (@#\$%...)", passed = cSpecial)
                     }
                 }
             }
@@ -442,7 +442,7 @@ fun EncryptScreen(
                 onClick = { viewModel.executeEncrypt() },
                 enabled = isEncryptEnabled,
                 isLoading = state.isEncrypting,
-                loadingText = "در حال محاسبه کلیدهای ۶۰۰k دور...",
+                loadingText = "Deriving 600k-iteration PBKDF2 keys...",
                 modifier = Modifier.fillMaxWidth(),
                 accentColor = MatrixGreenPrimary,
                 testTag = "execute_encrypt_button"

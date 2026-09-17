@@ -74,7 +74,7 @@ fun BiometricLockOverlay(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Lock,
-                        contentDescription = "قفل امنیتی",
+                        contentDescription = "Security Lock",
                         tint = CyberAmber,
                         modifier = Modifier.size(36.dp)
                     )
@@ -83,7 +83,7 @@ fun BiometricLockOverlay(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "سیستم محرمانه قفل است",
+                    text = "VAULT IS LOCKED",
                     style = MaterialTheme.typography.titleLarge.copy(
                         color = Color.White,
                         fontWeight = FontWeight.Bold
@@ -106,7 +106,7 @@ fun BiometricLockOverlay(
                 Spacer(modifier = Modifier.height(14.dp))
 
                 Text(
-                    text = "جهت محافظت از پروژه‌ها و داده‌های رمزنگاری شده محلی، تأیید اثر انگشت یا پین سیستمی الزامی است.",
+                    text = "Fingerprint or system credential verification is required to protect your confidential encrypted projects.",
                     style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFFA5C4AF)),
                     textAlign = TextAlign.Center
                 )
@@ -114,7 +114,7 @@ fun BiometricLockOverlay(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 CyberButton(
-                    text = "تأیید هویت بیومتریک / پین",
+                    text = "Authenticate Biometrics / PIN",
                     icon = Icons.Default.Fingerprint,
                     onClick = onAuthenticateClick,
                     modifier = Modifier.fillMaxWidth(),

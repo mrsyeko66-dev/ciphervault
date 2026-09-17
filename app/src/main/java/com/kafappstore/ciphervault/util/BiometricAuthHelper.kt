@@ -19,8 +19,8 @@ object BiometricAuthHelper {
 
     fun promptBiometric(
         activity: FragmentActivity,
-        title: String = "تأیید هویت امنیتی CipherVault",
-        subtitle: String = "برای دسترسی به اطلاعات محرمانه اثر انگشت یا پین خود را وارد کنید",
+        title: String = "CipherVault Security Authentication",
+        subtitle: String = "Authenticate using fingerprint or device PIN to access secure vault",
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
@@ -48,7 +48,7 @@ object BiometricAuthHelper {
 
                 override fun onAuthenticationFailed() {
                     super.onAuthenticationFailed()
-                    Toast.makeText(activity, "تأیید هویت ناموفق بود. دوباره تلاش کنید.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, "Authentication failed. Please try again.", Toast.LENGTH_SHORT).show()
                 }
             }
         )

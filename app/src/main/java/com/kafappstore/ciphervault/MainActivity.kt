@@ -11,6 +11,8 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import com.kafappstore.ciphervault.data.AppLockType
+import com.kafappstore.ciphervault.ui.components.AppAuthenticationOverlay
 import com.kafappstore.ciphervault.ui.components.BiometricLockOverlay
 import com.kafappstore.ciphervault.util.BiometricAuthHelper
 import androidx.compose.foundation.BorderStroke
@@ -135,18 +137,25 @@ class MainActivity : FragmentActivity() {
                 }
             }
 
-            // Trigger biometric prompt when locked
-            androidx.compose.runtime.LaunchedEffect(isAppLocked) {
-                if (isAppLocked) {
+            // Trigger biometric prompt only if lockType is BIOMETRIC when locked
+            androidx.compose.runtime.LaunchedEffect(isAppLocked, settings.lockType) {
+                if (isAppLocked && settings.lockType == AppLockType.BIOMETRIC) {
                     triggerBiometricAuth(viewModel)
                 }
             }
 
             CipherVaultTheme(themeMode = settings.themeMode) {
                 if (isAppLocked) {
-                    BiometricLockOverlay(
-                        onAuthenticateClick = {
+                    AppAuthenticationOverlay(
+                        settings = settings,
+                        onBiometricClick = {
                             triggerBiometricAuth(viewModel)
+                        },
+                        onVerifyPasscode = { passcode ->
+                            viewModel.verifyPasscode(passcode)
+                        },
+                        onUnlockSuccess = {
+                            viewModel.unlockApp()
                         }
                     )
                 } else {

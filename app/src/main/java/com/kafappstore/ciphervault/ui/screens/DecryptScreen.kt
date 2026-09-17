@@ -376,7 +376,7 @@ fun DecryptScreen(
                 onClick = { viewModel.executeDecrypt() },
                 enabled = state.inputBase64.isNotBlank() && state.password.isNotEmpty() && !state.isDecrypting,
                 isLoading = state.isDecrypting,
-                loadingText = "در حال محاسبه کلیدهای ۶۰۰k دور...",
+                loadingText = "Deriving 600k-iteration PBKDF2 keys...",
                 modifier = Modifier.fillMaxWidth(),
                 accentColor = CyberCyan,
                 testTag = "execute_decrypt_button"
@@ -464,7 +464,7 @@ fun DecryptScreen(
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "متن بسیار طولانی است (${plaintext.length} کاراکتر). ۳۰,۰۰۰ کاراکتر اول نمایش داده شده است. تمام متن در دکمه‌های کپی و ذخیره موجود است.",
+                                        text = "Text is very long (${plaintext.length} chars). Displaying first 30,000 characters. Full text is preserved for Copy and Save operations.",
                                         style = MaterialTheme.typography.bodySmall.copy(color = CyberAmber, fontSize = 11.sp)
                                     )
                                 }
