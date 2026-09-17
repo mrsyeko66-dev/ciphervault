@@ -1,8 +1,14 @@
 package com.kafappstore.ciphervault.viewmodel
 
 import android.content.ContentResolver
+import android.content.ContentValues
+import android.content.Context
+import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import android.os.Environment
 import android.provider.DocumentsContract
+import android.provider.MediaStore
 import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -24,6 +30,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
+import java.io.File
+import java.io.IOException
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.text.SimpleDateFormat
@@ -155,7 +163,7 @@ class CipherViewModel(
         _streamingState.value = _streamingState.value.copy(
             isStreaming = false,
             speedMBs = 0f,
-            errorMessage = "عملیات استریم توسط کاربر لغو و فایل ناقص پاکسازی شد (Aborted & Rolled back)."
+            errorMessage = "Streaming operation aborted by user. Incomplete temporary file rolled back and removed."
         )
     }
 
@@ -230,7 +238,7 @@ class CipherViewModel(
             val strength = CipherEngine.evaluatePasswordStrength(password)
             if (!strength.first) {
                 _encryptState.value = currentState.copy(
-                    errorMessage = "رمزنگاری بدون کلید مخفی نیازمند رمز عبور بسیار قوی است:\n" + strength.third.joinToString("\n• ", prefix = "• ")
+                    errorMessage = "Standalone encryption (No secret key) requires a high-entropy password:\n" + strength.third.joinToString("\n• ", prefix = "• ")
                 )
                 return
             }
@@ -463,7 +471,7 @@ class CipherViewModel(
             val strength = CipherEngine.evaluatePasswordStrength(password)
             if (!strength.first) {
                 _streamingState.value = st.copy(
-                    errorMessage = "رمزنگاری فایل بدون کلید مخفی نیازمند پسورد بسیار قوی است:\n" + strength.third.joinToString("\n• ", prefix = "• ")
+                    errorMessage = "Standalone file encryption (No secret key) requires a high-entropy password:\n" + strength.third.joinToString("\n• ", prefix = "• ")
                 )
                 return
             }
@@ -535,9 +543,9 @@ class CipherViewModel(
                                     _streamingState.value = _streamingState.value.copy(
                                         isStreaming = false,
                                         errorMessage = if (isStreamingCancelled) {
-                                            "عملیات استریم لغو و فایل ناقص حذف گردید."
+                                            "Streaming operation cancelled. Incomplete file removed."
                                         } else {
-                                            "خطای رمزنگاری استریم: ${ex.message ?: "ناشناخته"} (فایل ناقص پاکسازی شد)"
+                                            "Stream encryption error: ${ex.message ?: "Unknown"} (cleaned up incomplete file)"
                                         }
                                     )
                                 }
@@ -552,9 +560,9 @@ class CipherViewModel(
                     _streamingState.value = _streamingState.value.copy(
                         isStreaming = false,
                         errorMessage = if (isStreamingCancelled) {
-                            "عملیات استریم لغو و فایل ناقص حذف گردید."
+                            "Streaming operation cancelled. Incomplete file removed."
                         } else {
-                            "خطای ذخیره‌سازی فایل: ${e.localizedMessage} (فایل ناقص پاکسازی شد)"
+                            "File storage error: ${e.localizedMessage} (cleaned up incomplete file)"
                         }
                     )
                 }
@@ -638,7 +646,7 @@ class CipherViewModel(
                                     _streamingState.value = _streamingState.value.copy(
                                         isStreaming = false,
                                         errorMessage = if (isStreamingCancelled) {
-                                            "عملیات استریم لغو و فایل ناقص حذف گردید."
+                                            "Streaming operation cancelled. Incomplete file removed."
                                         } else {
                                             ex.message ?: "Incorrect password or corrupted file."
                                         }
@@ -655,9 +663,9 @@ class CipherViewModel(
                     _streamingState.value = _streamingState.value.copy(
                         isStreaming = false,
                         errorMessage = if (isStreamingCancelled) {
-                            "عملیات استریم لغو و فایل ناقص حذف گردید."
+                            "Streaming operation cancelled. Incomplete file removed."
                         } else {
-                            "خطای خواندن/نوشتن فایل: ${e.localizedMessage} (فایل ناقص پاکسازی شد)"
+                            "File I/O error: ${e.localizedMessage} (incomplete file removed)"
                         }
                     )
                 }
@@ -838,7 +846,7 @@ class CipherViewModel(
         _encryptState.value = _encryptState.value.copy(
             inputText = text,
             errorMessage = null,
-            successMessage = "متن دریافتی از برنامه دیگر بارگذاری شد."
+            successMessage = "Text loaded from external app."
         )
         _pendingNavigateTab.value = 0 // Terminal Encrypt tab
     }
@@ -929,7 +937,9 @@ class CipherViewModel(
     fun saveContentToFile(uri: Uri, content: String, contentResolver: ContentResolver, onComplete: (Boolean, String) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                contentResolver.openOutputStream(uri)?.use { stream ->
+                val outputStream = contentResolver.openOutputStream(uri)
+                    ?: throw IOException("Cannot open output stream for selected file location.")
+                outputStream.use { stream ->
                     val writer = OutputStreamWriter(stream, Charsets.UTF_8)
                     writer.write(content)
                     writer.flush()
@@ -942,6 +952,69 @@ class CipherViewModel(
                     onComplete(false, "Error saving file: ${e.localizedMessage}")
                 }
             }
+        }
+    }
+
+    /**
+     * Direct robust save to device's public Downloads directory.
+     * Uses MediaStore.Downloads on Android 10+ (API 29+) without requiring runtime permissions.
+     */
+    fun saveContentToDownloads(
+        context: Context,
+        fileName: String,
+        content: String,
+        onComplete: (Boolean, String) -> Unit
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    val contentValues = ContentValues().apply {
+                        put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                        put(MediaStore.MediaColumns.MIME_TYPE, "text/plain")
+                        put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                    }
+                    val uri = context.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                        ?: throw IOException("Failed to allocate file in Downloads folder.")
+                    val outputStream = context.contentResolver.openOutputStream(uri)
+                        ?: throw IOException("Failed to write to Downloads location.")
+                    outputStream.use { stream ->
+                        val writer = OutputStreamWriter(stream, Charsets.UTF_8)
+                        writer.write(content)
+                        writer.flush()
+                    }
+                } else {
+                    val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                    if (!downloadsDir.exists()) downloadsDir.mkdirs()
+                    val targetFile = File(downloadsDir, fileName)
+                    targetFile.writeText(content, Charsets.UTF_8)
+                }
+                withContext(Dispatchers.Main) {
+                    onComplete(true, "File saved to Downloads: $fileName")
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "Failed saving to Downloads: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
+    /**
+     * Instant system share of text content.
+     */
+    fun shareTextContent(context: Context, content: String, title: String = "Share Encrypted Data") {
+        try {
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, content)
+                putExtra(Intent.EXTRA_TITLE, title)
+            }
+            val chooser = Intent.createChooser(intent, title).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(chooser)
+        } catch (e: Exception) {
+            // Log or ignore
         }
     }
 

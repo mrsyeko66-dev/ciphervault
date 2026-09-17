@@ -62,6 +62,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kafappstore.ciphervault.crypto.CipherEngine
@@ -69,6 +70,7 @@ import com.kafappstore.ciphervault.util.SecureClipboardHelper
 import com.kafappstore.ciphervault.ui.components.ConditionalOutputSection
 import com.kafappstore.ciphervault.ui.components.Cyber3DTab
 import com.kafappstore.ciphervault.ui.components.CyberButton
+import com.kafappstore.ciphervault.ui.components.CyberSaveExportDialog
 import com.kafappstore.ciphervault.ui.components.CyberSecondaryButton
 import com.kafappstore.ciphervault.ui.components.CyberTerminalTextField
 import com.kafappstore.ciphervault.ui.components.KeyDerivationIndicator
@@ -96,6 +98,9 @@ fun EncryptScreen(
 
     // Sub-mode: 0 = Text & Drafts, 1 = Large Files Streaming (1GB+)
     var encryptSubMode by remember { mutableIntStateOf(0) }
+
+    var showSaveDialog by remember { mutableStateOf(false) }
+    var pendingFileName by remember { mutableStateOf("") }
 
     val urlDialogVisible by viewModel.urlDialogVisible.collectAsState()
     val urlInput by viewModel.urlInput.collectAsState()
@@ -300,8 +305,14 @@ fun EncryptScreen(
 
             // Password Section
             Text(
-                text = if (!state.useSecretKey) "Set Standalone Password (Very Strong Required)" else "Set Encryption Password (12 to 64 chars)",
-                style = MaterialTheme.typography.titleMedium.copy(color = MatrixGreenPrimary)
+                text = if (!state.useSecretKey) "Set Standalone Password (High Entropy)" else "Set Encryption Password (12-64 chars)",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = MatrixGreenPrimary,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -506,9 +517,35 @@ fun EncryptScreen(
                         )
                     },
                     onSaveToFile = {
-                        saveFileLauncher.launch("ciphervault_encrypted_${System.currentTimeMillis()}.txt")
+                        pendingFileName = "ciphervault_encrypted_${System.currentTimeMillis()}.txt"
+                        showSaveDialog = true
                     }
                 )
+
+                if (showSaveDialog) {
+                    CyberSaveExportDialog(
+                        initialFileName = pendingFileName.ifBlank { "ciphervault_encrypted_${System.currentTimeMillis()}.txt" },
+                        onDismiss = { showSaveDialog = false },
+                        onSaveToDownloads = { name ->
+                            viewModel.saveContentToDownloads(context, name, base64Output) { _, msg ->
+                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        onChooseSaf = { name ->
+                            try {
+                                saveFileLauncher.launch(name)
+                            } catch (e: Exception) {
+                                // SAF unavailable or failed, automatically fall back to Downloads without crashing
+                                viewModel.saveContentToDownloads(context, name, base64Output) { _, msg ->
+                                    Toast.makeText(context, "System picker unavailable. $msg", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        },
+                        onShare = {
+                            viewModel.shareTextContent(context, base64Output, "CipherVault Encrypted Payload")
+                        }
+                    )
+                }
             }
         }
 

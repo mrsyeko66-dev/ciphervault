@@ -396,7 +396,7 @@ fun LargeFileStreamingSection(
                         placeholder = {
                             Text(
                                 if (isDecryptionMode) "Enter file password..."
-                                else if (!streamingState.useSecretKey) "حداقل ۱۴ کاراکتر با حروف بزرگ و کوچک، عدد و نماد..."
+                                else if (!streamingState.useSecretKey) "Min 14 chars with upper, lower, digit & symbol..."
                                 else "Password (12-64 chars)..."
                             )
                         },
@@ -439,7 +439,7 @@ fun LargeFileStreamingSection(
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
-                                            text = "رمزنگاری بدون کلید مخفی (حالت مستقل)",
+                                            text = "Encryption without Secret Key (Standalone)",
                                             style = MaterialTheme.typography.bodyMedium.copy(
                                                 color = if (!streamingState.useSecretKey) MatrixGreenPrimary else Color.LightGray,
                                                 fontWeight = FontWeight.Bold,
@@ -450,9 +450,9 @@ fun LargeFileStreamingSection(
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text(
                                         text = if (!streamingState.useSecretKey)
-                                            "فایل فقط با این رمز عبور باز می‌شود (فاقد وابستگی به کلید مخفی برنامه). نیازمند پسورد بسیار قوی."
+                                            "File decrypts only with this password (independent of app secret key). Requires a high-entropy password."
                                         else
-                                            "استفاده از کلید مخفی برنامه (پیش‌فرض با حداکثر امنیت)",
+                                            "Using App Secret Key (Default - Maximum Security)",
                                         style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray, fontSize = 10.sp)
                                     )
                                 }
@@ -489,18 +489,18 @@ fun LargeFileStreamingSection(
                             ) {
                                 Column(modifier = Modifier.padding(10.dp)) {
                                     Text(
-                                        text = "الزامات پسورد قوی در حالت بدون کلید مخفی:",
+                                        text = "Strong password requirements (Standalone Mode):",
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             color = MatrixGreenPrimary,
                                             fontWeight = FontWeight.Bold
                                         )
                                     )
                                     Spacer(modifier = Modifier.height(6.dp))
-                                    StrengthCheckItem(label = "حداقل ۱۴ کاراکتر (${pw.length}/14)", passed = cLength)
-                                    StrengthCheckItem(label = "شامل حروف بزرگ انگلیسی (A-Z)", passed = cUpper)
-                                    StrengthCheckItem(label = "شامل حروف کوچک انگلیسی (a-z)", passed = cLower)
-                                    StrengthCheckItem(label = "شامل حداقل یک رقم عدد (0-9)", passed = cDigit)
-                                    StrengthCheckItem(label = "شامل حداقل یک نماد خاص (@#\$%...)", passed = cSpecial)
+                                    StrengthCheckItem(label = "At least 14 characters (${pw.length}/14)", passed = cLength)
+                                    StrengthCheckItem(label = "Contains uppercase letter (A-Z)", passed = cUpper)
+                                    StrengthCheckItem(label = "Contains lowercase letter (a-z)", passed = cLower)
+                                    StrengthCheckItem(label = "Contains at least one digit (0-9)", passed = cDigit)
+                                    StrengthCheckItem(label = "Contains special symbol (@#\$%...)", passed = cSpecial)
                                 }
                             }
                         }
@@ -527,9 +527,9 @@ fun LargeFileStreamingSection(
                         if (peek.isFailure) {
                             val ex = peek.exceptionOrNull()
                             val msg = if (ex is SecurityException || ex is IllegalArgumentException) {
-                                "رمز عبور اشتباه است یا فرمت فایل رمزنگاری شده نامعتبر است."
+                                "Incorrect password or invalid encrypted file format."
                             } else {
-                                ex?.message ?: "خطا در بررسی فایل رمزنگاری شده"
+                                ex?.message ?: "Error verifying encrypted file"
                             }
                             Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                             return@CyberButton
@@ -631,7 +631,7 @@ fun LargeFileStreamingSection(
 
                     // Cancel / Abort Operation Button
                     CyberSecondaryButton(
-                        text = "لغو عملیات و بازگردانی (Abort & Cleanup)",
+                        text = "Abort Operation & Cleanup",
                         icon = Icons.Default.Close,
                         onClick = {
                             viewModel.cancelStreamingOperation()
@@ -709,7 +709,7 @@ fun LargeFileStreamingSection(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     CyberButton(
-                        text = "باز کردن فایل",
+                        text = "Open File",
                         icon = Icons.Default.OpenInNew,
                         onClick = {
                             val savedUri = streamingState.lastSavedTargetUri ?: return@CyberButton
@@ -722,14 +722,14 @@ fun LargeFileStreamingSection(
                             try {
                                 context.startActivity(Intent.createChooser(intent, "Open File"))
                             } catch (e: Exception) {
-                                Toast.makeText(context, "برنامه‌ای برای باز کردن این فایل یافت نشد", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "No application found to open this file", Toast.LENGTH_SHORT).show()
                             }
                         },
                         accentColor = CyberCyan,
                         modifier = Modifier.weight(1f)
                     )
                     CyberButton(
-                        text = "اشتراک‌گذاری",
+                        text = "Share File",
                         icon = Icons.Default.Share,
                         onClick = {
                             val savedUri = streamingState.lastSavedTargetUri ?: return@CyberButton
@@ -743,7 +743,7 @@ fun LargeFileStreamingSection(
                             try {
                                 context.startActivity(Intent.createChooser(intent, "Share File"))
                             } catch (e: Exception) {
-                                Toast.makeText(context, "خطا در اشتراک‌گذاری فایل", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Error sharing file", Toast.LENGTH_SHORT).show()
                             }
                         },
                         accentColor = MatrixGreenPrimary,

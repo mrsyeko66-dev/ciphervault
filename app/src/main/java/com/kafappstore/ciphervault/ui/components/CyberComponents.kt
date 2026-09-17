@@ -42,8 +42,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -53,6 +56,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -519,11 +523,11 @@ fun PasswordStrengthMeter(
     }
 
     val (label, color) = when (strengthScore) {
-        3 -> "Strong (Maximum Security)" to MatrixGreenPrimary
-        2 -> "Moderate (Acceptable)" to CyberCyan
-        1 -> "Weak (Improvement Advised)" to CyberAmber
-        else -> if (length == 0) "Enter 12 to 64 characters" to Color(0xFF5A7864)
-                else "Password length must be 12-64" to CyberCrimson
+        3 -> "Strong (Max Security)" to MatrixGreenPrimary
+        2 -> "Moderate" to CyberCyan
+        1 -> "Weak (Improve)" to CyberAmber
+        else -> if (length == 0) "12-64 chars required" to Color(0xFF5A7864)
+                else "12-64 chars required" to CyberCrimson
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -532,16 +536,47 @@ fun PasswordStrengthMeter(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Password Strength: $label",
-                style = MaterialTheme.typography.labelSmall.copy(color = color)
-            )
-            Text(
-                text = "$length / 64 characters",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    color = if (length in 12..64) MatrixGreenPrimary else CyberCrimson
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Password Strength: ",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        color = Color(0xFF8BAA94),
+                        fontSize = 11.sp
+                    )
                 )
-            )
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        color = color,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            Surface(
+                color = if (length in 12..64) Color(0xFF0D2114) else Color(0xFF240D12),
+                shape = RoundedCornerShape(4.dp),
+                border = BorderStroke(1.dp, if (length in 12..64) MatrixGreenPrimary.copy(alpha = 0.6f) else CyberCrimson.copy(alpha = 0.6f))
+            ) {
+                Text(
+                    text = "$length/64 chars",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (length in 12..64) MatrixGreenPrimary else CyberCrimson
+                    ),
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(4.dp))
@@ -581,9 +616,9 @@ fun PasswordWhitespaceWarning(
 
     if (hasLeadingSpace || hasTrailingSpace) {
         val message = when {
-            hasLeadingSpace && hasTrailingSpace -> "هشدار: رمز عبور دارای فاصله خالی در ابتدا و انتها است!"
-            hasLeadingSpace -> "هشدار: رمز عبور دارای فاصله خالی در ابتدا است!"
-            else -> "هشدار: رمز عبور دارای فاصله خالی در انتها است!"
+            hasLeadingSpace && hasTrailingSpace -> "Warning: Password contains leading and trailing spaces!"
+            hasLeadingSpace -> "Warning: Password contains leading space!"
+            else -> "Warning: Password contains trailing space!"
         }
 
         Surface(
@@ -631,7 +666,7 @@ fun PasswordWhitespaceWarning(
                     border = BorderStroke(1.dp, CyberAmber)
                 ) {
                     Text(
-                        text = "حذف فاصله (Trim)",
+                        text = "Trim",
                         style = MaterialTheme.typography.labelSmall.copy(
                             color = Color(0xFFFFD54F),
                             fontWeight = FontWeight.Bold,
@@ -677,7 +712,7 @@ fun KeyDerivationIndicator(
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
                     Text(
-                        text = "در حال محاسبه کلیدهای ۶۰۰k دور (PBKDF2-HMAC-SHA256)...",
+                        text = "Calculating 600,000 Rounds (PBKDF2-HMAC-SHA256)...",
                         style = MaterialTheme.typography.bodySmall.copy(
                             color = accentColor,
                             fontWeight = FontWeight.Bold,
@@ -685,7 +720,7 @@ fun KeyDerivationIndicator(
                         )
                     )
                     Text(
-                        text = "مشتق‌سازی امن کلید ۲۵۶ بیتی در برابر حملات بروت‌فورس",
+                        text = "Deriving high-entropy 256-bit keys against brute-force attacks",
                         style = MaterialTheme.typography.labelSmall.copy(
                             color = Color.LightGray,
                             fontSize = 10.sp
@@ -943,7 +978,7 @@ fun ConditionalOutputSection(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "حجم خروجی زیاد است ($length کاراکتر)",
+                                text = "Large output payload ($length characters)",
                                 style = MaterialTheme.typography.bodyMedium.copy(
                                     color = MatrixGreenPrimary,
                                     fontWeight = FontWeight.Bold
@@ -953,9 +988,9 @@ fun ConditionalOutputSection(
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = if (length > 30_000)
-                                "جهت بهینه‌سازی و روانی برنامه، ۳۰,۰۰۰ کاراکتر اول نمایش داده شده است. تمام محتوا از طریق دکمه‌های زیر بدون کم و کاست قابل کپی یا ذخیره در فایل است."
+                                "For performance and smooth rendering, the first 30,000 characters are displayed. The full content can be safely copied or saved using the buttons below."
                             else
-                                "تمام محتوا آماده کپی و ذخیره‌سازی در فایل است.",
+                                "Full payload ready for copying or saving to file.",
                             style = MaterialTheme.typography.bodySmall.copy(
                                 color = Color.LightGray,
                                 fontSize = 11.sp
@@ -1071,4 +1106,126 @@ fun MatrixRainCanvas(
             y += scanlineGap
         }
     }
+}
+
+/**
+ * Universal Cyberpunk Save / Export Dialog
+ * Provides 3 reliable, crash-proof export pathways:
+ * 1. Instant save to device's public Downloads directory (works everywhere on Android without SAF)
+ * 2. Custom folder selection via SAF (handled with full try/catch)
+ * 3. Native system share sheet
+ */
+@Composable
+fun CyberSaveExportDialog(
+    initialFileName: String,
+    onDismiss: () -> Unit,
+    onSaveToDownloads: (fileName: String) -> Unit,
+    onChooseSaf: (fileName: String) -> Unit,
+    onShare: () -> Unit
+) {
+    var fileName by remember { mutableStateOf(initialFileName) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.FileDownload,
+                    contentDescription = null,
+                    tint = MatrixGreenPrimary,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Save / Export Payload",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        color = MatrixGreenPrimary,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+            }
+        },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Output File Name:",
+                    style = MaterialTheme.typography.labelSmall.copy(color = Color.LightGray)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                OutlinedTextField(
+                    value = fileName,
+                    onValueChange = { fileName = it },
+                    singleLine = true,
+                    textStyle = TextStyle(
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 12.sp,
+                        color = MatrixTextCode
+                    ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MatrixGreenPrimary,
+                        unfocusedBorderColor = Color(0xFF1B3824),
+                        focusedContainerColor = Color(0xFF060D08),
+                        unfocusedContainerColor = Color(0xFF060D08)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Option 1: Direct to Downloads
+                CyberButton(
+                    text = "Save to Downloads (Instant)",
+                    icon = Icons.Default.Download,
+                    onClick = {
+                        val validName = if (fileName.isBlank()) initialFileName else fileName.trim()
+                        onSaveToDownloads(validName)
+                        onDismiss()
+                    },
+                    accentColor = MatrixGreenPrimary,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Option 2: Custom folder via SAF
+                CyberSecondaryButton(
+                    text = "Choose Folder (SAF)",
+                    icon = Icons.Default.FolderOpen,
+                    onClick = {
+                        val validName = if (fileName.isBlank()) initialFileName else fileName.trim()
+                        onChooseSaf(validName)
+                        onDismiss()
+                    },
+                    accentColor = CyberCyan,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Option 3: Share
+                CyberSecondaryButton(
+                    text = "Share Content",
+                    icon = Icons.Default.Share,
+                    onClick = {
+                        onShare()
+                        onDismiss()
+                    },
+                    accentColor = CyberAmber,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = "Cancel",
+                    color = Color.LightGray,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+        },
+        containerColor = Color(0xFF0B1710),
+        shape = RoundedCornerShape(12.dp)
+    )
 }

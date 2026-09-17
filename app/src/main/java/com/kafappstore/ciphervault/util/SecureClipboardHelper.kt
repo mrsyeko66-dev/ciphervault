@@ -47,9 +47,9 @@ object SecureClipboardHelper {
         clipboard.setPrimaryClip(clip)
 
         val message = onSuccessMessage ?: if (isSensitive) {
-            "کپی شد (پاکسازی خودکار در $autoClearSeconds ثانیه)"
+            "Copied (Auto-clearing in ${autoClearSeconds}s)"
         } else {
-            "کپی شد"
+            "Copied to clipboard"
         }
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 
@@ -68,7 +68,7 @@ object SecureClipboardHelper {
                             } else {
                                 clipboard.setPrimaryClip(ClipData.newPlainText("", ""))
                             }
-                            Toast.makeText(context, "کلیپ‌بورد برای حفظ امنیت پاکسازی شد.", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Clipboard cleared for security.", Toast.LENGTH_SHORT).show()
                         }
                     }
                 } catch (_: Exception) {

@@ -66,6 +66,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kafappstore.ciphervault.ui.components.Cyber3DTab
 import com.kafappstore.ciphervault.ui.components.CyberButton
+import com.kafappstore.ciphervault.ui.components.CyberSaveExportDialog
 import com.kafappstore.ciphervault.ui.components.CyberSecondaryButton
 import com.kafappstore.ciphervault.ui.components.CyberTerminalTextField
 import com.kafappstore.ciphervault.ui.components.KeyDerivationIndicator
@@ -98,6 +99,8 @@ fun DecryptScreen(
 
     var showSaveToProjectDialog by remember { mutableStateOf(false) }
     var saveProjectTitle by remember { mutableStateOf("") }
+    var showSaveDialog by remember { mutableStateOf(false) }
+    var pendingFileName by remember { mutableStateOf("") }
 
     // File picker to read Base64 text file
     val openFileLauncher = rememberLauncherForActivityResult(
@@ -273,7 +276,7 @@ fun DecryptScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "طول رشته ورودی زیاد است (${state.inputBase64.length} کاراکتر)",
+                                text = "Large input payload (${state.inputBase64.length} characters)",
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     color = CyberAmber,
                                     fontWeight = FontWeight.Bold
@@ -282,7 +285,7 @@ fun DecryptScreen(
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "جهت جلوگیری از کندی برنامه، ۳۰,۰۰۰ کاراکتر اول نمایش داده شده است. تمام ${state.inputBase64.length} کاراکتر بدون محدودیت رمزگشایی می‌شوند.",
+                            text = "For performance and smooth rendering, the first 30,000 characters are displayed. All ${state.inputBase64.length} characters will be decrypted without restriction.",
                             style = MaterialTheme.typography.bodySmall.copy(color = Color.LightGray, fontSize = 11.sp)
                         )
                     }
@@ -520,11 +523,36 @@ fun DecryptScreen(
                                 text = "Save File",
                                 icon = Icons.Default.FileDownload,
                                 onClick = {
-                                    saveFileLauncher.launch("ciphervault_decrypted_${System.currentTimeMillis()}.txt")
+                                    pendingFileName = "ciphervault_decrypted_${System.currentTimeMillis()}.txt"
+                                    showSaveDialog = true
                                 },
                                 modifier = Modifier.weight(1f),
                                 accentColor = CyberCyan,
                                 testTag = "decrypt_save_file_btn"
+                            )
+                        }
+
+                        if (showSaveDialog) {
+                            CyberSaveExportDialog(
+                                initialFileName = pendingFileName.ifBlank { "ciphervault_decrypted_${System.currentTimeMillis()}.txt" },
+                                onDismiss = { showSaveDialog = false },
+                                onSaveToDownloads = { name ->
+                                    viewModel.saveContentToDownloads(context, name, plaintext) { _, msg ->
+                                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                onChooseSaf = { name ->
+                                    try {
+                                        saveFileLauncher.launch(name)
+                                    } catch (e: Exception) {
+                                        viewModel.saveContentToDownloads(context, name, plaintext) { _, msg ->
+                                            Toast.makeText(context, "System picker unavailable. $msg", Toast.LENGTH_LONG).show()
+                                        }
+                                    }
+                                },
+                                onShare = {
+                                    viewModel.shareTextContent(context, plaintext, "CipherVault Decrypted Plaintext")
+                                }
                             )
                         }
 
