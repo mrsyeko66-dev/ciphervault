@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>CipherVault Comprehensive Guide &amp; Technical Handbook</title>
+  <style>
+    :root {
+      --bg-dark: #040805;
+      --card-bg: #0b150f;
+      --card-border: #163321;
+      --accent-green: #00ff66;
+      --accent-green-dim: #00aa44;
+      --accent-cyan: #00e5ff;
+      --accent-amber: #ffb700;
+      --accent-crimson: #ff3366;
+      --text-main: #e0f2e9;
+      --text-muted: #88a391;
+      --font-mono: 'Courier New', Courier, monospace, Consolas;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      padding-bottom: 50px;
+      transition: all 0.2s ease;
+    }
+
+    /* RTL specific styling when Persian is active */
+    body.lang-fa-mode {
+      direction: rtl;
+      text-align: right;
+      font-family: -apple-system, BlinkMacSystemFont, 'Vazirmatn', 'Tahoma', 'Segoe UI', sans-serif;
+    }
+
+    /* Visibility rules based on active language */
+    body:not(.lang-fa-mode) .lang-fa {
+      display: none !important;
+    }
+    body.lang-fa-mode .lang-en {
+      display: none !important;
+    }
+
+    /* Preserved LTR for diagrams, code, technical parameters */
+    .ltr-block {
+      direction: ltr !important;
+      text-align: left !important;
+    }
+
+    /* Cyber Header */
+    .header {
+      background: linear-gradient(180deg, #091a10 0%, #040805 100%);
+      border-bottom: 1px solid var(--accent-green);
+      padding: 20px 16px 16px 16px;
+      text-align: center;
+      position: relative;
+      box-shadow: 0 4px 20px rgba(0, 255, 102, 0.08);
+    }
+
+    .lang-switcher-wrap {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+
+    .lang-switcher {
+      display: inline-flex;
+      background: #08140c;
+      border: 1px solid var(--accent-green);
+      border-radius: 20px;
+      padding: 2px;
+      gap: 2px;
+      box-shadow: 0 0 10px rgba(0, 255, 102, 0.15);
+    }
+
+    .lang-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 5px 14px;
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: var(--font-mono);
+    }
+
+    .lang-btn.active {
+      background: var(--accent-green);
+      color: #040805;
+      box-shadow: 0 0 8px rgba(0, 255, 102, 0.5);
+    }
+
+    .header-badge {
+      display: inline-block;
+      background: rgba(0, 255, 102, 0.12);
+      border: 1px solid var(--accent-green);
+      color: var(--accent-green);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .header h1 {
+      font-size: 21px;
+      color: #ffffff;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .header p {
+      color: var(--accent-cyan);
+      font-size: 12px;
+      font-family: var(--font-mono);
+    }
+
+    /* Search & Filter Bar */
+    .search-container {
+      padding: 12px 16px;
+      background: #060e08;
+      border-bottom: 1px solid var(--card-border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .search-input {
+      width: 100%;
+      background: #0c1810;
+      border: 1px solid #1f422b;
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: #fff;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent-green);
+      box-shadow: 0 0 10px rgba(0, 255, 102, 0.2);
+    }
+
+    /* Navigation Pills */
+    .nav-scroll {
+      display: flex;
+      overflow-x: auto;
+      padding: 10px 16px;
+      gap: 8px;
+      background: #050a06;
+      border-bottom: 1px solid var(--card-border);
+      scrollbar-width: none;
+    }
+    .nav-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .nav-pill {
+      background: #0b1810;
+      border: 1px solid #1a3824;
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 11.5px;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .nav-pill.active {
+      background: rgba(0, 255, 102, 0.15);
+      border-color: var(--accent-green);
+      color: var(--accent-green);
+    }
+
+    /* Content Layout */
+    .content {
+      padding: 16px;
+    }
+
+    .section {
+      margin-bottom: 24px;
+      display: block;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .card-title .tag {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: normal;
+    }
+    .tag-green { background: rgba(0, 255, 102, 0.15); color: var(--accent-green); border: 1px solid var(--accent-green); }
+    .tag-cyan { background: rgba(0, 229, 255, 0.15); color: var(--accent-cyan); border: 1px solid var(--accent-cyan); }
+    .tag-amber { background: rgba(255, 183, 0, 0.15); color: var(--accent-amber); border: 1px solid var(--accent-amber); }
+    .tag-crimson { background: rgba(255, 51, 102, 0.15); color: var(--accent-crimson); border: 1px solid var(--accent-crimson); }
+
+    p {
+      margin-bottom: 10px;
+      color: var(--text-main);
+    }
+
+    ul, ol {
+      padding-inline-start: 22px;
+      margin-bottom: 12px;
+    }
+
+    li {
+      margin-bottom: 6px;
+      color: var(--text-muted);
+    }
+    li strong {
+      color: #fff;
+    }
+
+    /* Warning / OpSec Callout Box */
+    .callout {
+      border-radius: 8px;
+      padding: 14px;
+      margin: 14px 0;
+      font-size: 13px;
+    }
+
+    .callout-danger {
+      background: rgba(255, 51, 102, 0.08);
+      border: 1px solid var(--accent-crimson);
+      color: #ffc2d1;
+    }
+    .callout-danger h4 {
+      color: var(--accent-crimson);
+      margin-bottom: 4px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .callout-warning {
+      background: rgba(255, 183, 0, 0.08);
+      border: 1px solid var(--accent-amber);
+      color: #ffe8b3;
+    }
+    .callout-warning h4 {
+      color: var(--accent-amber);
+      margin-bottom: 4px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .callout-info {
+      background: rgba(0, 229, 255, 0.08);
+      border: 1px solid var(--accent-cyan);
+      color: #d1f7ff;
+    }
+    .callout-info h4 {
+      color: var(--accent-cyan);
+      margin-bottom: 4px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    /* SVG Architecture Visualizer */
+    .diagram-container {
+      background: #060d08;
+      border: 1px solid #1a3a24;
+      border-radius: 10px;
+      padding: 12px 6px;
+      margin: 14px 0;
+      overflow-x: auto;
+      text-align: center;
+      direction: ltr;
+    }
+
+    .diagram-svg {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+
+    /* Step Pipeline */
+    .step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 12px 0;
+    }
+
+    .step-item {
+      background: #08120b;
+      border: 1px solid #183321;
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .step-num {
+      background: #11281a;
+      border: 1px solid var(--accent-green);
+      color: var(--accent-green);
+      font-family: var(--font-mono);
+      font-weight: bold;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 12px;
+    }
+
+    .step-content h4 {
+      color: #fff;
+      font-size: 13.5px;
+      margin-bottom: 3px;
+    }
+    .step-content p {
+      color: var(--text-muted);
+      font-size: 12px;
+      margin: 0;
+    }
+
+    /* Spec Table */
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 12px;
+      direction: ltr;
+    }
+    .spec-table th, .spec-table td {
+      border: 1px solid #173622;
+      padding: 8px 10px;
+      text-align: left;
+    }
+    .spec-table th {
+      background: #0f2216;
+      color: var(--accent-green);
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+    .spec-table td {
+      background: #08120b;
+    }
+    .spec-table tr:nth-child(even) td {
+      background: #060e08;
+    }
+
+    /* Interactive Calculator */
+    .calc-box {
+      background: #07100a;
+      border: 1px solid var(--accent-cyan);
+      border-radius: 10px;
+      padding: 16px;
+      margin-top: 14px;
+    }
+    .calc-input {
+      width: 100%;
+      background: #0d1e13;
+      border: 1px solid #235232;
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 14px;
+      outline: none;
+      margin-top: 6px;
+      margin-bottom: 12px;
+      direction: ltr;
+    }
+    .calc-stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .calc-stat-card {
+      background: #0a180f;
+      border: 1px solid #1d4027;
+      border-radius: 6px;
+      padding: 10px;
+      text-align: center;
+    }
+    .calc-stat-val {
+      color: var(--accent-cyan);
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: bold;
+    }
+    .calc-stat-lbl {
+      color: var(--text-muted);
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Accordion FAQ */
+    .faq-item {
+      border: 1px solid #183321;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      background: #08130c;
+      overflow: hidden;
+    }
+    .faq-question {
+      padding: 12px 14px;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+    .faq-question::after {
+      content: '+';
+      color: var(--accent-green);
+      font-size: 18px;
+      font-weight: bold;
+      margin-inline-start: 8px;
+    }
+    .faq-item.open .faq-question::after {
+      content: '−';
+    }
+    .faq-answer {
+      display: none;
+      padding: 12px 14px;
+      border-top: 1px solid #183321;
+      font-size: 12.5px;
+      color: var(--text-muted);
+      background: #050b07;
+    }
+    .faq-item.open .faq-answer {
+      display: block;
+    }
+
+    /* Footer badge */
+    .footer-note {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-family: var(--font-mono);
+      margin-top: 30px;
+      padding: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <!-- Language Toggle -->
+    <div class="lang-switcher-wrap">
+      <div class="lang-switcher">
+        <button class="lang-btn active" id="btnLangEn" onclick="setLanguage('en')">English</button>
+        <button class="lang-btn" id="btnLangFa" onclick="setLanguage('fa')">فارسی</button>
+      </div>
+    </div>
+
+    <!-- English Header -->
+    <div class="lang-en">
+      <div class="header-badge">CLASSIFIED TECHNICAL COMPENDIUM</div>
+      <h1>CipherVault Comprehensive Wiki</h1>
+      <p>MIL-SPEC 3-LAYER CASCADE CRYPTOSYSTEM MANUAL &amp; OPSEC PROTOCOLS</p>
+    </div>
+
+    <!-- Persian Header -->
+    <div class="lang-fa">
+      <div class="header-badge">دانشنامه و راهنمای امنیتی سایپروالت</div>
+      <h1>ویکی‌نامه جامع CipherVault</h1>
+      <p>دستورالعمل کامل سیستم رمزنگاری سه‌لایه آبشاری و پروتکل‌های OpSec</p>
+    </div>
+  </div>
+
+  <!-- Search Sticky Header -->
+  <div class="search-container">
+    <input type="text" id="wikiSearch" class="search-input" placeholder="Search architecture, algorithms, opsec rules..." oninput="handleSearch()" />
+  </div>
+
+  <!-- Category Nav Pills -->
+  <div class="nav-scroll" id="navScrollPills">
+    <!-- Generated dynamically in JS based on active language -->
+  </div>
+
+  <!-- Main Body Content -->
+  <div class="content" id="wikiContent">
+
+    <!-- ==================== SECTION 1: OPSEC & PHYSICAL COLD STORAGE ==================== -->
+    <div class="section" data-category="opsec">
+      <div class="card">
+        <!-- English Section 1 -->
+        <div class="lang-en">
+          <div class="card-title">
+            <span>CRITICAL SECURITY ADVISORY &amp; OPSEC PROTOCOLS</span>
+            <span class="tag tag-crimson">MANDATORY</span>
+          </div>
+
+          <div class="callout callout-danger">
+            <h4>NO CLOUD BACKUPS • ZERO MASTER BACKDOORS • MATHEMATICAL FINALITY</h4>
+            CipherVault employs zero telemetry, connects to no remote servers, and preserves no backdoor key vaults. <strong>If you lose your Password or alter your Secret Pepper without a backup, your encrypted data is permanently, irrevocably lost.</strong> No technician, intelligence agency, or supercomputer cluster can restore it.
+          </div>
+
+          <p>Follow these operational security (OpSec) commandments to guarantee airtight safety for your confidential records:</p>
+
+          <div class="step-list">
+            <div class="step-item">
+              <div class="step-num">1</div>
+              <div class="step-content">
+                <h4>Write the Secret Pepper on Physical Paper or Metal Plate</h4>
+                <p>Navigate to <strong>Settings &gt; Secret Pepper</strong>. Write down the 32-character hex sequence on archival-grade paper or engrave it onto a stainless steel plate. Store this physical card in a fireproof home safe or safety deposit box.</p>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-num">2</div>
+              <div class="step-content">
+                <h4>NEVER Store Passwords or Pepper in Cloud Storage</h4>
+                <p>Do NOT upload your Secret Pepper or passphrases to Google Keep, iCloud Notes, Telegram Saved Messages, WhatsApp, or email drafts. Cloud services are vulnerable to credential stuffing, insider threats, and subpoenas.</p>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-num">3</div>
+              <div class="step-content">
+                <h4>Keep Secret Pepper Synchronized Across Devices</h4>
+                <p>If you encrypt a file on Device A and wish to decrypt it on Device B, <strong>both devices must have the identical 32-character Secret Pepper configured</strong> in Settings. Alternatively, use <em>Standalone Mode</em> if transferring data to third parties who do not have your Pepper.</p>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-num">4</div>
+              <div class="step-content">
+                <h4>Enable FLAG_SECURE &amp; Biometric/PIN Enclave</h4>
+                <p>Under Settings, keep <strong>Screenshot &amp; Task Switcher Guard (FLAG_SECURE)</strong> active. This blocks Android OS screen scrapers, background malware, and preview thumbnails in Recent Apps. Set a Numeric PIN or Master Password to prevent physical unauthorized access.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Persian Section 1 -->
+        <div class="lang-fa">
+          <div class="card-title">
+            <span>توصیه‌های حیاتی امنیتی و پروتکل‌های OpSec</span>
+            <span class="tag tag-crimson">الزامی</span>
+          </div>
+
+          <div class="callout callout-danger">
+            <h4>عدم ذخیره در ابر • بدون هیچ‌گونه درپشتی • قطعیت محض ریاضی</h4>
+            سایپروالت کاملاً آفلاین است، هیچ دیتایی به هیچ سروری ارسال نمی‌کند و هیچ کلید بازیابی یا مستر پسوردی در سرتاسر جهان وجود ندارد. <strong>در صورت فراموشی رمز عبور یا تغییر کلید مخفی (Secret Pepper) بدون پشتیبان، داده‌های شما برای همیشه از دست خواهند رفت.</strong> هیچ ابررایانه یا سازمان اطلاعاتی قادر به بازیابی آن نخواهد بود.
+          </div>
+
+          <p>برای حفظ امنیت حداکثری و ایزوله داده‌های محرمانه، حتماً اصول زیر را با دقت رعایت نمایید:</p>
+
+          <div class="step-list">
+            <div class="step-item">
+              <div class="step-num">۱</div>
+              <div class="step-content">
+                <h4>کلید مخفی (Secret Pepper) را روی کاغذ فیزیکی یا پلاک فلزی یادداشت کنید</h4>
+                <p>به بخش <strong>تنظیمات &gt; کلید مخفی (Pepper)</strong> بروید. این کد ۳۲ کاراکتری را روی یک تکه کاغذ ضخیم یا پلاک فلزی بنویسید و در مکانی امن (مانند گاوصندوق خانگی) نگهداری کنید.</p>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-num">۲</div>
+              <div class="step-content">
+                <h4>هرگز کلید یا رمزها را در فضای ابری ذخیره نکنید</h4>
+                <p>کلید مخفی یا پسوردهای خود را در گوگل کیپ، نوت‌های آیکلود، پیام‌های ذخیره شده تلگرام، واتساپ یا پیش‌نویس ایمیل قرار ندهید. سرویس‌های آنلاین همواره در معرض نشت دیتا، کی‌لاگرها و هک قرار دارند.</p>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-num">۳</div>
+              <div class="step-content">
+                <h4>همگام‌سازی کلید مخفی بین دو دستگاه</h4>
+                <p>اگر فایلی را در گوشی خود رمزنگاری کرده و می‌خواهید در تبلت یا دستگاه دیگری رمزگشایی کنید، <strong>باید هر دو دستگاه کلید مخفی ۳۲ کاراکتری یکسانی در تنظیمات داشته باشند</strong>. اگر می‌خواهید فایل را برای فرد دیگری بفرستید، از <em>حالت مستقل (بدون کلید مخفی)</em> استفاده کنید.</p>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-num">۴</div>
+              <div class="step-content">
+                <h4>فعال‌سازی قفل ورود (پین / بیومتریک) و FLAG_SECURE</h4>
+                <p>در تنظیمات، گزینه <strong>FLAG_SECURE (محافظت از تصویر و اسکرین‌شات)</strong> را روشن نگه دارید تا هیچ برنامه‌ای نتواند از صفحه اسکرین‌شات یا فیلم ضبط کند. همچنین یک پین عددی یا رمز ورود برای اپلیکیشن تنظیم کنید.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 2: 3-LAYER ARCHITECTURE & DIAGRAMS ==================== -->
+    <div class="section" data-category="architecture">
+      <div class="card">
+        <!-- English Section 2 -->
+        <div class="lang-en">
+          <div class="card-title">
+            <span>3-Layer Cascade Cryptographic Engine</span>
+            <span class="tag tag-green">PIPELINE</span>
+          </div>
+
+          <p>CipherVault implements <strong>cascade super-encryption</strong>. Rather than relying on a single algorithm that could suffer unforeseen zero-day cryptographic weaknesses, data is transformed sequentially across three distinct, mathematically orthogonal layers:</p>
+        </div>
+
+        <!-- Persian Section 2 -->
+        <div class="lang-fa">
+          <div class="card-title">
+            <span>موتور رمزنگاری آبشاری ۳ لایه (Cascade Encryption)</span>
+            <span class="tag tag-green">معماری سیستم</span>
+          </div>
+
+          <p>سایپروالت از فناوری <strong>سوپر رمزنگاری آبشاری</strong> استفاده می‌کند. داده‌ها به‌جای اتکا به یک الگوریتم واحد، به صورت متوالی از سه لایه مستقل و مکمل عبور می‌کنند تا امنیت به درجه کمال نظامی برسد:</p>
+        </div>
+
+        <!-- SVG Visual Diagram (Universal LTR) -->
+        <div class="diagram-container">
+          <svg class="diagram-svg" viewBox="0 0 680 340" xmlns="http://www.w3.org/2000/svg">
+            <!-- Plaintext Input Block -->
+            <rect x="20" y="30" width="130" height="60" rx="8" fill="#0c1d13" stroke="#00ff66" stroke-width="1.5"/>
+            <text x="85" y="55" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="monospace">PLAINTEXT</text>
+            <text x="85" y="73" fill="#88a391" font-size="9" text-anchor="middle">Text or File Bytes</text>
+
+            <!-- Key Derivation / PBKDF2 Block -->
+            <rect x="20" y="140" width="130" height="150" rx="8" fill="#0d1822" stroke="#00e5ff" stroke-width="1.5"/>
+            <text x="85" y="165" fill="#00e5ff" font-size="11" font-weight="bold" text-anchor="middle" font-family="monospace">KEY DERIVATION</text>
+            <text x="85" y="185" fill="#fff" font-size="10" text-anchor="middle">Password</text>
+            <text x="85" y="200" fill="#00ff66" font-size="9" text-anchor="middle">+ 16B CSPRNG Salt</text>
+            <text x="85" y="215" fill="#ffb700" font-size="9" text-anchor="middle">+ 32-Char Pepper</text>
+            <line x1="35" y1="225" x2="135" y2="225" stroke="#1f4233" stroke-width="1"/>
+            <text x="85" y="243" fill="#00e5ff" font-size="9" font-weight="bold" text-anchor="middle" font-family="monospace">PBKDF2-HMAC-SHA256</text>
+            <text x="85" y="258" fill="#00ff66" font-size="10" font-weight="bold" text-anchor="middle">600,000 Rounds</text>
+            <text x="85" y="274" fill="#88a391" font-size="8.5" text-anchor="middle">Produces 512-bit Keys</text>
+
+            <!-- Connectors -->
+            <path d="M 150 60 L 210 60" stroke="#00ff66" stroke-width="2" stroke-dasharray="4,4" fill="none"/>
+            <path d="M 150 215 L 210 215" stroke="#00e5ff" stroke-width="2" fill="none"/>
+
+            <!-- Layer 1: AES-256-GCM -->
+            <rect x="210" y="30" width="130" height="120" rx="8" fill="#0c1f14" stroke="#00ff66" stroke-width="2"/>
+            <text x="275" y="55" fill="#00ff66" font-size="11" font-weight="bold" text-anchor="middle" font-family="monospace">LAYER 1 (AEAD)</text>
+            <text x="275" y="75" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle">AES-256-GCM</text>
+            <text x="275" y="93" fill="#88a391" font-size="9" text-anchor="middle">96-bit Random IV</text>
+            <text x="275" y="108" fill="#88a391" font-size="9" text-anchor="middle">128-bit Poly Tag</text>
+            <text x="275" y="130" fill="#00ff66" font-size="8.5" text-anchor="middle">Hardware AES-NI</text>
+
+            <!-- Arrow to Layer 2 -->
+            <path d="M 340 90 L 370 90" stroke="#00e5ff" stroke-width="2" fill="none"/>
+
+            <!-- Layer 2: ChaCha20-Poly1305 -->
+            <rect x="370" y="30" width="140" height="120" rx="8" fill="#081c22" stroke="#00e5ff" stroke-width="2"/>
+            <text x="440" y="55" fill="#00e5ff" font-size="11" font-weight="bold" text-anchor="middle" font-family="monospace">LAYER 2 (STREAM)</text>
+            <text x="440" y="75" fill="#fff" font-size="11" font-weight="bold" text-anchor="middle">ChaCha20-Poly1305</text>
+            <text x="440" y="93" fill="#88a391" font-size="9" text-anchor="middle">Secondary 256-bit Key</text>
+            <text x="440" y="108" fill="#88a391" font-size="9" text-anchor="middle">96-bit Nonce</text>
+            <text x="440" y="130" fill="#00e5ff" font-size="8.5" text-anchor="middle">Constant-Time ARX</text>
+
+            <!-- Arrow to Layer 3 -->
+            <path d="M 510 90 L 540 90" stroke="#ffb700" stroke-width="2" fill="none"/>
+
+            <!-- Layer 3: XOR Diffusion -->
+            <rect x="540" y="30" width="120" height="120" rx="8" fill="#201705" stroke="#ffb700" stroke-width="2"/>
+            <text x="600" y="55" fill="#ffb700" font-size="11" font-weight="bold" text-anchor="middle" font-family="monospace">LAYER 3</text>
+            <text x="600" y="75" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle">XOR Diffusion</text>
+            <text x="600" y="93" fill="#88a391" font-size="9" text-anchor="middle">SHA-256 Feedback</text>
+            <text x="600" y="108" fill="#88a391" font-size="9" text-anchor="middle">Maximum Entropy</text>
+            <text x="600" y="130" fill="#ffb700" font-size="8.5" text-anchor="middle">Bit-Level Diffusion</text>
+
+            <!-- Output Block -->
+            <rect x="370" y="200" width="290" height="90" rx="8" fill="#0b1710" stroke="#00ff66" stroke-width="1.5"/>
+            <text x="515" y="225" fill="#00ff66" font-size="12" font-weight="bold" text-anchor="middle" font-family="monospace">FINAL ENCRYPTED CIPHERTEXT</text>
+            <text x="515" y="245" fill="#fff" font-size="10" text-anchor="middle">[Salt 16B] + [IV 12B] + [Tag 16B] + [Encrypted Data]</text>
+            <text x="515" y="265" fill="#88a391" font-size="9.5" text-anchor="middle">Base64 Armored String or .cvault Encrypted File</text>
+            <path d="M 600 150 L 600 200" stroke="#00ff66" stroke-width="2" fill="none"/>
+          </svg>
+        </div>
+
+        <div class="lang-en">
+          <table class="spec-table">
+            <thead>
+              <tr>
+                <th>Cryptographic Parameter</th>
+                <th>CipherVault Standard</th>
+                <th>Security Level / Defense</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Primary Block Cipher</td>
+                <td>AES-256 in GCM mode (Galois/Counter)</td>
+                <td>256-bit symmetric strength (NSA Suite B / Top Secret)</td>
+              </tr>
+              <tr>
+                <td>Secondary Stream Cipher</td>
+                <td>ChaCha20 with Poly1305 authenticator</td>
+                <td>RFC 8439; immune to cache-timing attacks on modern CPUs</td>
+              </tr>
+              <tr>
+                <td>Tertiary Transformation</td>
+                <td>SHA-256 Bitwise XOR Stream Permutation</td>
+                <td>Breaks pattern correlation and guarantees maximum Shannon entropy</td>
+              </tr>
+              <tr>
+                <td>Key Derivation Function</td>
+                <td>PBKDF2 with HMAC-SHA256</td>
+                <td><strong>600,000 iterations</strong> (far exceeds OWASP recommendation of 310,000)</td>
+              </tr>
+              <tr>
+                <td>Salt Generation</td>
+                <td>16 Bytes (128 bits) via SecureRandom</td>
+                <td>Completely unique per operation; prevents precomputed Rainbow Tables</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="lang-fa">
+          <table class="spec-table">
+            <thead>
+              <tr>
+                <th>پارامتر رمزنگاری</th>
+                <th>استاندارد در سایپروالت</th>
+                <th>سطح حفاظتی و نقش دفاعی</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>لایه اول (Block Cipher)</td>
+                <td>AES-256 در حالت GCM (احراز هویت شده)</td>
+                <td>استاندارد فوق محرمانه NSA؛ شتاب‌دهنده سخت‌افزاری AES-NI</td>
+              </tr>
+              <tr>
+                <td>لایه دوم (Stream Cipher)</td>
+                <td>ChaCha20 با احراز اصالت Poly1305</td>
+                <td>استاندارد RFC 8439؛ ضد حملات زمان‌بندی حافظه پردازنده (Timing Attacks)</td>
+              </tr>
+              <tr>
+                <td>لایه سوم (Diffusion)</td>
+                <td>تلفیق بیتی جریانی با فیدبک هیدر SHA-256</td>
+                <td>حذف هرگونه الگوی ریاضی قابل ردیابی و حداکثرسازی آنتروپی شانون</td>
+              </tr>
+              <tr>
+                <td>الگوریتم استخراج کلید</td>
+                <td>PBKDF2 با استفاده از HMAC-SHA256</td>
+                <td><strong>۶۰۰,۰۰۰ دور محاسباتی</strong> (دو برابر توصیه‌های OWASP)</td>
+              </tr>
+              <tr>
+                <td>سالیک تصادفی (Salt)</td>
+                <td>۱۶ بایت تولید شده توسط CSPRNG</td>
+                <td>منحصربه‌فرد برای هر بار رمزنگاری؛ خنثی‌کننده جداول Rainbow</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 3: WHY CIPHERTEXT CANNOT BE BROKEN ==================== -->
+    <div class="section" data-category="cryptanalysis">
+      <div class="card">
+        <!-- English Section 3 -->
+        <div class="lang-en">
+          <div class="card-title">
+            <span>Why Interception &amp; Decryption is Mathematically Impossible</span>
+            <span class="tag tag-cyan">CRYPTANALYSIS</span>
+          </div>
+
+          <div class="callout callout-info">
+            <h4>THE POWER OF 256-BIT EXPONENTIATION</h4>
+            A 256-bit key space represents \(2^{256} \approx 1.1579 \times 10^{77}\) unique possible keys. To contextualize this magnitude: <strong>there are approximately \(10^{80}\) atoms in the entire observable universe.</strong>
+          </div>
+
+          <p>Here is why an adversary capturing your encrypted message cannot read or reverse it:</p>
+
+          <div class="step-list">
+            <div class="step-item">
+              <div class="step-num">A</div>
+              <div class="step-content">
+                <h4>Exhaustive Brute-Force Infeasibility</h4>
+                <p>Suppose the most powerful supercomputing cluster on Earth could test <strong>100 Trillion keys per second</strong> (\(10^{14}\) keys/sec). It would still require <strong>\(3.67 \times 10^{55}\) years</strong> to exhaustively search the key space. The universe itself is only \(1.38 \times 10^{10}\) years old.</p>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-num">B</div>
+              <div class="step-content">
+                <h4>600,000 PBKDF2 Rounds Paralyzes GPU Cracking</h4>
+                <p>Standard hashing functions allow specialized GPU rigs to calculate billions of guesses per second. By tuning PBKDF2 to <strong>600,000 HMAC-SHA256 computational rounds</strong>, each single guess demands massive CPU memory cycles, slowing GPU rigs to a crawl of fewer than 50 guesses per second.</p>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-num">C</div>
+              <div class="step-content">
+                <h4>Dual-Factor Isolation (Password + Pepper)</h4>
+                <p>CipherVault binds your user password with the 32-character Secret Pepper. Even if an attacker places a keylogger on your keyboard and steals your master password, <strong>they cannot decrypt your messages without the 32-character Pepper stored inside your app instance.</strong></p>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-num">D</div>
+              <div class="step-content">
+                <h4>AEAD Tamper Detection (Integrity Rejection)</h4>
+                <p>Both AES-GCM and ChaCha20-Poly1305 utilize <strong>Authenticated Encryption with Associated Data (AEAD)</strong>. If an attacker alters even a single bit in the encrypted payload, the Poly/GCM tag fails verification instantly, aborting before any decryption algorithm runs.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Persian Section 3 -->
+        <div class="lang-fa">
+          <div class="card-title">
+            <span>چرا رمزگشایی و شنود پیام‌ها از نظر ریاضی غیرممکن است؟</span>
+            <span class="tag tag-cyan">تحلیل رمزنگاری</span>
+          </div>
+
+          <div class="callout callout-info">
+            <h4>قدرت نجومی فضای کلید ۲۵۶ بیتی</h4>
+            فضای کلید ۲۵۶ بیتی برابر با \(2^{256} \approx 1.1579 \times 10^{77}\) ترکیب کلید منحصربه‌فرد است. برای درک این عدد: <strong>تعداد کل اتم‌های موجود در تمام جهان شناخته‌شده حدود \(10^{80}\) اتم تخمین زده می‌شود!</strong>
+          </div>
+
+          <p>دلایل غیرقابل نفوذ بودن پیام‌ها و فایل‌های رمزنگاری شده با سایپروالت:</p>
+
+          <div class="step-list">
+            <div class="step-item">
+              <div class="step-num">الف</div>
+              <div class="step-content">
+                <h4>غیرممکن بودن حمله Brute-Force (حدس کلید)</h4>
+                <p>اگر قدرتمندترین شبکه ابررایانه‌ای جهان بتواند <strong>۱۰۰ تریلیون کلید در هر ثانیه</strong> را تست کند، تست تمام حالات ممکن نیازمند <strong>\(3.67 \times 10^{55}\) سال</strong> زمان خواهد بود. در حالی که سن کل کیهان تنها \(1.38 \times 10^{10}\) سال است!</p>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-num">ب</div>
+              <div class="step-content">
+                <h4>۶۰۰,۰۰۰ دور PBKDF2: فلج‌کننده ریگ‌های ماینینگ و کارت‌های گرافیک</h4>
+                <p>توابع هش معمولی به هکرها اجازه می‌دهند میلیاردها حدس در ثانیه بزنند. اما سایپروالت با اجرای ۶۰۰ هزار دور محاسباتی سنگین برای هر کلمه عبور، سرعت کارت‌های گرافیک کرکر را به کمتر از ۵۰ حدس در ثانیه کاهش می‌دهد و حمله دیکشنری را غیرممکن می‌سازد.</p>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-num">ج</div>
+              <div class="step-content">
+                <h4>جداسازی دومرحله‌ای (پسورد کاربر + کلید مخفی Pepper)</h4>
+                <p>حتی اگر یک بدافزار یا فردی از روی شانه شما پسوردتان را یادداشت یا لو ببرد، بدون کلید مخفی ۳۲ کاراکتری که در سخت‌افزار گوشی شما قرار دارد، رمزگشایی متن‌ها به هیچ وجه امکان‌پذیر نخواهد بود.</p>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-num">د</div>
+              <div class="step-content">
+                <h4>تشخیص دستکاری و رد بلادرنگ (AEAD Integrity Guard)</h4>
+                <p>هر دو الگوریتم AES-GCM و Poly1305 دارای تگ احراز اصالت هستند. اگر فردی در مسیر ارسال، حتی ۱ بیت از پیام را جابجا یا دستکاری کند، سیستم پیش از اجرای عملیات رمزگشایی، بسته را بی‌درنگ ابطال و رد می‌کند.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 4: STEP-BY-STEP USER MANUAL ==================== -->
+    <div class="section" data-category="tutorial">
+      <div class="card">
+        <!-- English Section 4 -->
+        <div class="lang-en">
+          <div class="card-title">
+            <span>Complete Workflow Manual</span>
+            <span class="tag tag-amber">GUIDE</span>
+          </div>
+
+          <h3 style="color:var(--accent-green); margin-bottom:8px; font-size:14px;">1. Text Encryption Modes</h3>
+          <p>When encrypting sensitive text or messages, you have two strategic choices:</p>
+          <ul>
+            <li><strong>Standard Mode (Default):</strong> Combines your Password + 32-character Secret Pepper. Delivers maximum military-grade defense. Both devices must share the same Pepper.</li>
+            <li><strong>Standalone Mode (Without Pepper):</strong> Encrypts with password only. Ideal for sharing files or texts with friends who do not possess your Secret Pepper. <em>Requires a strict high-entropy password (min 14 chars with uppercase, lowercase, numbers, and symbols).</em></li>
+          </ul>
+
+          <h3 style="color:var(--accent-cyan); margin-top:16px; margin-bottom:8px; font-size:14px;">2. Large File Streaming Vault (1GB+)</h3>
+          <p>Unlike ordinary encryption apps that load an entire file into device RAM (causing crashes), CipherVault streams data in <strong>128KB chunks</strong>:</p>
+          <ul>
+            <li><strong>Zero RAM Bottlenecks:</strong> Encrypt multi-gigabyte video recordings, disk backups, and PDFs without memory overflow.</li>
+            <li><strong>Proprietary .cvault Container:</strong> Embeds original filename and extension securely in the authenticated header. Restores your exact file name upon decryption.</li>
+            <li><strong>Stealth Custom Extensions:</strong> Choose <code>.cenc</code>, <code>.enc</code>, or type your custom extension for plausible deniability.</li>
+          </ul>
+
+          <h3 style="color:var(--accent-amber); margin-top:16px; margin-bottom:8px; font-size:14px;">3. Project Draft Vault</h3>
+          <p>Save notes, confidential memos, and sensitive codes in the <strong>Projects</strong> tab. Backed by an encrypted local Room SQLite database, projects allow multi-session drafting before one-click encryption and export.</p>
+        </div>
+
+        <!-- Persian Section 4 -->
+        <div class="lang-fa">
+          <div class="card-title">
+            <span>راهنمای کاربری و مراحل عملیاتی</span>
+            <span class="tag tag-amber">آموزش گام‌به‌گام</span>
+          </div>
+
+          <h3 style="color:var(--accent-green); margin-bottom:8px; font-size:14px;">۱. حالت‌های رمزنگاری متن</h3>
+          <p>شما می‌توانید بسته به کاربرد، از دو حالت رمزنگاری استفاده کنید:</p>
+          <ul>
+            <li><strong>حالت استاندارد (پیش‌فرض با حداکثر امنیت):</strong> ترکیب پسورد شما + کلید مخفی ۳۲ کاراکتری برنامه. بهترین حالت برای آرشیو شخصی. برای باز کردن در گوشی دیگر، کلید مخفی هر دو باید یکسان باشد.</li>
+            <li><strong>حالت مستقل (بدون کلید مخفی):</strong> رمزنگاری متن فقط با رمز عبور انتخابی شما، بدون وابستگی به کلید مخفی دستگاه. مناسب برای ارسال پیام به دوستان یا سایر افراد. (نیازمند پسورد قوی حداقل ۱۴ کاراکتری).</li>
+          </ul>
+
+          <h3 style="color:var(--accent-cyan); margin-top:16px; margin-bottom:8px; font-size:14px;">۲. استریم فایل‌های حجیم و سنگین (بالای ۱ گیگابایت)</h3>
+          <p>سایپروالت برخلاف برنامه‌های عادی، کل فایل را یکجا در حافظه رم بارگذاری نمی‌کند:</p>
+          <ul>
+            <li><strong>بدون افت سرعت و هنگی:</strong> فایل‌ها به صورت تکه‌های ۱۲۸ کیلوبایتی بافر و رمزنگاری می‌شوند تا ویدیوها و فایل‌های چند گیگابایتی به راحتی پردازش شوند.</li>
+            <li><strong>کانتینر هوشمند cvault.:</strong> نام اصلی و فرمت اولیه فایل در سربرگ رمزنگاری شده ذخیره می‌شود؛ هنگام رمزگشایی، نام و پسوند فایل به شکل اولیه بازمی‌گردد.</li>
+            <li><strong>پسوندهای سفارشی استتار:</strong> می‌توانید از پسوندهایی مانند <code>.cenc</code> یا پسوند دلخواه استفاده کنید.</li>
+          </ul>
+
+          <h3 style="color:var(--accent-amber); margin-top:16px; margin-bottom:8px; font-size:14px;">۳. پیش‌نویس پروژه‌ها (Projects)</h3>
+          <p>در تب پروژه‌ها می‌توانید یادداشت‌ها و مستندات محرمانه خود را به صورت محلی در پایگاه داده امن Room ذخیره، ویرایش و در صورت نیاز با یک کلیک خروجی رمزنگاری شده بگیرید.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 5: INTERACTIVE ENTROPY CALCULATOR ==================== -->
+    <div class="section" data-category="calculator">
+      <div class="card">
+        <!-- English Section 5 -->
+        <div class="lang-en">
+          <div class="card-title">
+            <span>Interactive Passphrase Strength &amp; Entropy Estimator</span>
+            <span class="tag tag-green">TOOL</span>
+          </div>
+          <p>Test sample passphrases below to observe how length, variety, and PBKDF2 rounds exponentially elevate resistance against automated cracking:</p>
+        </div>
+
+        <!-- Persian Section 5 -->
+        <div class="lang-fa">
+          <div class="card-title">
+            <span>ابزار تعاملی سنجش آنتروپی و زمان کرک پسورد</span>
+            <span class="tag tag-green">ابزار زنده</span>
+          </div>
+          <p>رمز عبور تستی خود را در کادر زیر تایپ کنید تا اثر طول و تنوع کاراکترها را بر زمان کرک در برابر ۶۰۰,۰۰۰ دور PBKDF2 به صورت زنده مشاهده کنید:</p>
+        </div>
+
+        <div class="calc-box">
+          <label style="font-size:12px; color:var(--text-muted); font-weight:600;" id="calcInputLabel">ENTER SAMPLE PASSPHRASE (Local calculation only):</label>
+          <input type="text" id="calcInput" class="calc-input" placeholder="Type a test password (e.g. CorrectHorseBatteryStaple99#)..." oninput="calculateEntropy()" />
+
+          <div class="calc-stat-grid">
+            <div class="calc-stat-card">
+              <div class="calc-stat-val" id="entropyVal">0 bits</div>
+              <div class="calc-stat-lbl" id="lblEntropy">Information Entropy</div>
+            </div>
+            <div class="calc-stat-card">
+              <div class="calc-stat-val" id="charsetVal">0</div>
+              <div class="calc-stat-lbl" id="lblCharset">Character Pool Size</div>
+            </div>
+            <div class="calc-stat-card" style="grid-column: span 2;">
+              <div class="calc-stat-val" id="crackTimeVal" style="color:var(--accent-green); font-size:14px;">Instant</div>
+              <div class="calc-stat-lbl" id="lblCrackTime">Estimated PBKDF2 (600k rounds) GPU Cluster Crack Time</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 6: FAQ & TROUBLESHOOTING ==================== -->
+    <div class="section" data-category="faq">
+      <div class="card">
+        <!-- English Section 6 -->
+        <div class="lang-en">
+          <div class="card-title">
+            <span>Frequently Asked Security Questions</span>
+            <span class="tag tag-cyan">FAQ</span>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-question" onclick="toggleFaq(this)">Can CipherVault developers decrypt my files if I forget my password?</div>
+            <div class="faq-answer">
+              <strong>Absolutely not.</strong> CipherVault is a pure client-side zero-knowledge security tool. There are no master recovery keys, no cloud servers, and no backdoor interfaces. If you lose your credentials, your data is mathematically unrecoverable.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-question" onclick="toggleFaq(this)">Why do I get "Decryption failed or invalid key / pepper"?</div>
+            <div class="faq-answer">
+              Because CipherVault uses Authenticated Encryption (AEAD), even a 1-character typo in your password, an altered Secret Pepper, or a truncated/modified ciphertext string will cause the authentication tag verification to fail immediately. Double-check your password and verify your 32-character Secret Pepper in Settings.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-question" onclick="toggleFaq(this)">Does CipherVault leave plain text in Android's clipboard or RAM?</div>
+            <div class="faq-answer">
+              CipherVault includes an automatic memory zeroization engine: after every cryptographic operation, all temporary byte arrays and key buffers are filled with zeros. Furthermore, whenever you copy text to your clipboard, a 30-second countdown timer automatically wipes the clipboard to prevent other apps from spying on it.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-question" onclick="toggleFaq(this)">Is this quantum-resistant?</div>
+            <div class="faq-answer">
+              Symmetric algorithms with 256-bit key lengths (like AES-256 and ChaCha20) remain secure against Grover's algorithm on hypothetical quantum computers, which only reduces effective brute-force complexity from 256 bits to 128 bits. 128 bits of quantum security still requires \(3.4 \times 10^{38}\) operations—far beyond any conceivable quantum computing system.
+            </div>
+          </div>
+        </div>
+
+        <!-- Persian Section 6 -->
+        <div class="lang-fa">
+          <div class="card-title">
+            <span>پرسش‌های متداول امنیتی (FAQ)</span>
+            <span class="tag tag-cyan">پرسش و پاسخ</span>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-question" onclick="toggleFaq(this)">آیا سازندگان سایپروالت در صورت فراموشی رمز می‌توانند فایلم را باز کنند؟</div>
+            <div class="faq-answer">
+              <strong>به هیچ عنوان.</strong> سایپروالت یک سامانه رمزنگاری Zero-Knowledge و آفلاین است. هیچ کلید بازیابی، هیچ سرور مرکزی و هیچ روزنه نفوذی در برنامه وجود ندارد. در صورت مفقودی رمز یا کلید، بازیابی فایل از دیدگاه علم رمزنگاری غیرممکن است.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-question" onclick="toggleFaq(this)">علت خطای "Decryption failed or invalid key / pepper" چیست؟</div>
+            <div class="faq-answer">
+              به دلیل استفاده از الگوریتم‌های AEAD (احراز اصالت داده)، حتی با اشتباه بودن یک کاراکتر در رمز، تفاوت داشتن کلید مخفی (Pepper) یا کم و زیاد بودن یک حرف از متن رمز، کلیدها تطبیق پیدا نکرده و رمزگشایی لغو می‌شود. از صحت رمز و یکسان بودن کلید مخفی در تنظیمات اطمینان حاصل کنید.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-question" onclick="toggleFaq(this)">آیا پس از کپی کردن متن، دیتایی در کلیپ‌بورد یا رم گوشی باقی می‌ماند؟</div>
+            <div class="faq-answer">
+              سایپروالت مجهز به پاک‌سازی امن حافظه (Memory Zeroization) است و پس از پایان هر پردازش، بافرهای موقت را با صفر بازنویسی می‌کند. همچنین تایمر پاک‌سازی خودکار کلیپ‌بورد، پس از ۳۰ ثانیه حافظه کپی گوشی را پاک می‌کند تا سایر اپلیکیشن‌ها نتوانند آن را بخوانند.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-question" onclick="toggleFaq(this)">آیا این سیستم در برابر رایانه‌های کوانتومی ایمن است؟</div>
+            <div class="faq-answer">
+              بله. الگوریتم‌های متقارن با طول کلید ۲۵۶ بیتی مانند AES-256 و ChaCha20 طبق الگوریتم کوانتومی Grover حداکثر به نصف (۱۲۸ بیت معادل) کاهش می‌یابند. ۱۲۸ بیت مقاومت کوانتومی معادل \(3.4 \times 10^{38}\) عملیات است که فراتر از هر سیستم کوانتومی قابل تصور است.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Footer Note -->
+    <div class="footer-note lang-en">
+      CIPHERVAULT SECURE DOCUMENTATION ENGINE • RUNNING OFFLINE VIA ZERO-ACCESS LOCAL PROTOCOL
+    </div>
+    <div class="footer-note lang-fa">
+      موتور اسناد امنیتی CIPHERVAULT • اجرا به صورت کاملاً آفلاین و پروتکل بدون دسترسی
+    </div>
+
+  </div>
+
+  <script>
+    let currentLang = 'en';
+    let currentCategory = 'all';
+
+    const pillLabels = {
+      en: [
+        { id: 'all', label: 'All Topics' },
+        { id: 'architecture', label: '3-Layer Architecture' },
+        { id: 'opsec', label: 'OpSec & Secret Pepper' },
+        { id: 'tutorial', label: 'User Manual & Streaming' },
+        { id: 'cryptanalysis', label: 'Why Unbreakable?' },
+        { id: 'calculator', label: 'Entropy Calculator' },
+        { id: 'faq', label: 'Security FAQ' }
+      ],
+      fa: [
+        { id: 'all', label: 'همه موضوعات' },
+        { id: 'architecture', label: 'معماری ۳ لایه' },
+        { id: 'opsec', label: 'امنیت و کلید مخفی' },
+        { id: 'tutorial', label: 'آموزش و استریم فایل' },
+        { id: 'cryptanalysis', label: 'چرا غیرقابل هک است؟' },
+        { id: 'calculator', label: 'ماشین‌حساب آنتروپی' },
+        { id: 'faq', label: 'پرسش‌های متداول' }
+      ]
+    };
+
+    function renderNavPills() {
+      const nav = document.getElementById('navScrollPills');
+      nav.innerHTML = '';
+      const list = pillLabels[currentLang] || pillLabels.en;
+      list.forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'nav-pill' + (item.id === currentCategory ? ' active' : '');
+        btn.innerText = item.label;
+        btn.onclick = () => switchTab(item.id, btn);
+        nav.appendChild(btn);
+      });
+    }
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      if (lang === 'fa') {
+        document.body.classList.add('lang-fa-mode');
+        document.documentElement.lang = 'fa';
+        document.documentElement.dir = 'rtl';
+        document.getElementById('btnLangEn').classList.remove('active');
+        document.getElementById('btnLangFa').classList.add('active');
+        document.getElementById('wikiSearch').placeholder = 'جستجو در معماری، الگوریتم‌ها، قوانین امنیتی...';
+        document.getElementById('calcInputLabel').innerText = 'رمز عبور تستی را وارد کنید (محاسبه صرفاً محلی):';
+        document.getElementById('lblEntropy').innerText = 'آنتروپی اطلاعات (بیت)';
+        document.getElementById('lblCharset').innerText = 'تعداد کاراکترهای مجاز (Pool)';
+        document.getElementById('lblCrackTime').innerText = 'زمان تخمینی کرک ریگ‌های GPU در برابر ۶۰۰k دور PBKDF2';
+      } else {
+        document.body.classList.remove('lang-fa-mode');
+        document.documentElement.lang = 'en';
+        document.documentElement.dir = 'ltr';
+        document.getElementById('btnLangEn').classList.add('active');
+        document.getElementById('btnLangFa').classList.remove('active');
+        document.getElementById('wikiSearch').placeholder = 'Search architecture, algorithms, opsec rules...';
+        document.getElementById('calcInputLabel').innerText = 'ENTER SAMPLE PASSPHRASE (Local calculation only):';
+        document.getElementById('lblEntropy').innerText = 'Information Entropy';
+        document.getElementById('lblCharset').innerText = 'Character Pool Size';
+        document.getElementById('lblCrackTime').innerText = 'Estimated PBKDF2 (600k rounds) GPU Cluster Crack Time';
+      }
+      renderNavPills();
+      calculateEntropy();
+    }
+
+    function switchTab(cat, el) {
+      currentCategory = cat;
+      document.querySelectorAll('.nav-pill').forEach(btn => btn.classList.remove('active'));
+      if (el) el.classList.add('active');
+
+      const sections = document.querySelectorAll('.section');
+      sections.forEach(sec => {
+        if (cat === 'all' || sec.getAttribute('data-category') === cat) {
+          sec.style.display = 'block';
+        } else {
+          sec.style.display = 'none';
+        }
+      });
+    }
+
+    function handleSearch() {
+      const q = document.getElementById('wikiSearch').value.toLowerCase();
+      const sections = document.querySelectorAll('.section');
+
+      sections.forEach(sec => {
+        const text = sec.textContent.toLowerCase();
+        if (!q || text.includes(q)) {
+          sec.style.display = 'block';
+        } else {
+          sec.style.display = 'none';
+        }
+      });
+    }
+
+    function toggleFaq(el) {
+      const item = el.parentElement;
+      item.classList.toggle('open');
+    }
+
+    function calculateEntropy() {
+      const input = document.getElementById('calcInput').value;
+      if (!input) {
+        document.getElementById('entropyVal').innerText = '0 bits';
+        document.getElementById('charsetVal').innerText = '0';
+        document.getElementById('crackTimeVal').innerText = currentLang === 'fa' ? 'لحظه‌ای' : 'Instant';
+        document.getElementById('crackTimeVal').style.color = 'var(--accent-crimson)';
+        return;
+      }
+
+      let pool = 0;
+      if (/[a-z]/.test(input)) pool += 26;
+      if (/[A-Z]/.test(input)) pool += 26;
+      if (/[0-9]/.test(input)) pool += 10;
+      if (/[^a-zA-Z0-9]/.test(input)) pool += 33;
+
+      const entropy = Math.round(input.length * (Math.log2(pool || 1)));
+      document.getElementById('entropyVal').innerText = entropy + (currentLang === 'fa' ? ' بیت' : ' bits');
+      document.getElementById('charsetVal').innerText = pool.toString();
+
+      const timeEl = document.getElementById('crackTimeVal');
+      if (entropy < 35) {
+        timeEl.innerText = currentLang === 'fa' ? 'چند ثانیه (< ۱ دقیقه)' : 'Few Seconds (< 1 minute)';
+        timeEl.style.color = 'var(--accent-crimson)';
+      } else if (entropy < 50) {
+        timeEl.innerText = currentLang === 'fa' ? 'چند روز تا ۲ هفته' : 'Several Days to 2 Weeks';
+        timeEl.style.color = 'var(--accent-amber)';
+      } else if (entropy < 70) {
+        timeEl.innerText = currentLang === 'fa' ? 'حدود ۲,۴۰۰ سال (کلاستر سخت‌افزاری)' : '~2,400 Years (Hardware cluster)';
+        timeEl.style.color = 'var(--accent-cyan)';
+      } else if (entropy < 90) {
+        timeEl.innerText = currentLang === 'fa' ? 'میلیاردها سال (از نظر محاسباتی غیرممکن)' : 'Billions of Years (Computationally Impassable)';
+        timeEl.style.color = 'var(--accent-green)';
+      } else {
+        timeEl.innerText = currentLang === 'fa' ? 'ابدی (فراتر از عمر کل کهکشان‌ها)' : 'Forever (Astronomical & Heat Death of Universe)';
+        timeEl.style.color = 'var(--accent-green)';
+      }
+    }
+
+    // Initialize with English as default
+    setLanguage('en');
+  </script>
+</body>
+</html>

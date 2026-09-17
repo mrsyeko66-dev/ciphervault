@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.EnhancedEncryption
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Shield
@@ -33,6 +34,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.kafappstore.ciphervault.ui.components.CyberButton
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +49,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kafappstore.ciphervault.R
@@ -53,6 +62,22 @@ import com.kafappstore.ciphervault.ui.theme.MatrixGreenPrimary
 fun AboutScreen(
     modifier: Modifier = Modifier
 ) {
+    var showGuide by remember { mutableStateOf(false) }
+
+    if (showGuide) {
+        Dialog(
+            onDismissRequest = { showGuide = false },
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                dismissOnBackPress = false
+            )
+        ) {
+            ComprehensiveGuideScreen(
+                onDismiss = { showGuide = false }
+            )
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -96,6 +121,90 @@ fun AboutScreen(
                 textAlign = TextAlign.Center
             )
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Comprehensive Guide Launch Card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(BorderStroke(1.5.dp, MatrixGreenPrimary), RoundedCornerShape(12.dp)),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF07140B)),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MenuBook,
+                            contentDescription = null,
+                            tint = MatrixGreenPrimary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Technical Handbook & Wiki",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    androidx.compose.material3.Surface(
+                        color = Color(0xFF0F2B18),
+                        shape = RoundedCornerShape(4.dp),
+                        border = BorderStroke(1.dp, MatrixGreenPrimary)
+                    ) {
+                        Text(
+                            text = "OFFLINE",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = MatrixGreenPrimary,
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = "Explore interactive visual architecture diagrams, physical OpSec cold storage protocols, cryptographic proof of brute-force infeasibility, and entropy tools.",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = Color(0xFF98B8A0),
+                        lineHeight = 18.sp
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                CyberButton(
+                    text = "Comprehensive Guide",
+                    icon = Icons.Default.MenuBook,
+                    onClick = { showGuide = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    accentColor = MatrixGreenPrimary,
+                    depth = 3.5.dp,
+                    testTag = "open_comprehensive_guide_button"
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(20.dp))
 
