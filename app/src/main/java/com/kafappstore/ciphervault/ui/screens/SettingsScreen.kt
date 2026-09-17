@@ -383,31 +383,76 @@ fun SettingsScreen(
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(Color(0xFF050B07))
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFF050B07),
+                    border = BorderStroke(1.dp, Color(0xFF162B1D)),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = if (settings.pepper.length > 14)
-                            "${settings.pepper.take(8)}••••••••••••••••${settings.pepper.takeLast(6)}"
-                        else
-                            settings.pepper,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = MatrixGreenPrimary,
-                            fontFamily = FontFamily.Monospace
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Key,
+                                    contentDescription = null,
+                                    tint = Color(0xFF6B8A74),
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "ACTIVE VALUE",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        color = Color(0xFF88A391),
+                                        fontFamily = FontFamily.Monospace,
+                                        fontSize = 10.sp,
+                                        letterSpacing = 1.sp
+                                    )
+                                )
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = Color(0xFF102417),
+                                border = BorderStroke(1.dp, MatrixGreenPrimary.copy(alpha = 0.5f))
+                            ) {
+                                Text(
+                                    text = "${settings.pepper.length} CHARS",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        color = MatrixGreenPrimary,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 10.sp
+                                    ),
+                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = if (settings.pepper.length > 14)
+                                "${settings.pepper.take(8)}••••••••••••••••${settings.pepper.takeLast(6)}"
+                            else
+                                settings.pepper,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = MatrixGreenPrimary,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp,
+                                letterSpacing = 0.5.sp
+                            ),
+                            modifier = Modifier.fillMaxWidth()
                         )
-                    )
-                    Text(
-                        text = "${settings.pepper.length} chars",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = MatrixGreenPrimary
-                        )
-                    )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
