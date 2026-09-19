@@ -72,6 +72,14 @@ import com.kafappstore.ciphervault.ui.theme.CyberAmber
 import com.kafappstore.ciphervault.ui.theme.CyberCyan
 import com.kafappstore.ciphervault.ui.theme.MatrixBorderNeon
 import com.kafappstore.ciphervault.ui.theme.MatrixGreenPrimary
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.FolderShared
+import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.kafappstore.ciphervault.util.StoragePermissionHelper
 import com.kafappstore.ciphervault.viewmodel.CipherViewModel
 
 @Composable
@@ -85,6 +93,24 @@ fun SettingsScreen(
 
     var showPepperDialog by remember { mutableStateOf(false) }
     var editedPepper by remember(settings.pepper) { mutableStateOf(settings.pepper) }
+
+    // Storage permission state & auto-refresh when resuming from system settings
+    var hasStorageAccess by remember {
+        mutableStateOf(StoragePermissionHelper.hasStoragePermission(context))
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                hasStorageAccess = StoragePermissionHelper.hasStoragePermission(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     // Passcode Configuration Dialog State
     var showPasscodeDialog by remember { mutableStateOf(false) }
@@ -502,6 +528,100 @@ fun SettingsScreen(
                         },
                         modifier = Modifier.weight(1f),
                         accentColor = CyberCyan
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Storage & File Access Permission Card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(BorderStroke(1.dp, MatrixBorderNeon), RoundedCornerShape(12.dp)),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0C1610)),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FolderShared,
+                            contentDescription = null,
+                            tint = if (hasStorageAccess) MatrixGreenPrimary else CyberAmber,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Storage & File Access",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = if (hasStorageAccess) Color(0xFF102417) else Color(0xFF2B180A),
+                        border = BorderStroke(
+                            1.dp,
+                            if (hasStorageAccess) MatrixGreenPrimary.copy(alpha = 0.6f) else CyberAmber.copy(alpha = 0.6f)
+                        )
+                    ) {
+                        Text(
+                            text = if (hasStorageAccess) "GRANTED ✓" else "RESTRICTED ⚠️",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = if (hasStorageAccess) MatrixGreenPrimary else CyberAmber,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp
+                            ),
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Allows CipherVault to browse device directories (Downloads, Documents, Internal Storage, and SD Cards), load files for encryption/decryption, and save encrypted vaults. You can grant or revoke this access at any time.",
+                    style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF88A391), fontSize = 12.sp)
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    CyberButton(
+                        text = if (hasStorageAccess) "Manage Access" else "Grant Access",
+                        icon = if (hasStorageAccess) Icons.Default.CheckCircle else Icons.Default.Security,
+                        onClick = {
+                            StoragePermissionHelper.requestStoragePermission(context)
+                        },
+                        accentColor = if (hasStorageAccess) MatrixGreenPrimary else CyberAmber,
+                        modifier = Modifier.weight(1f),
+                        testTag = "settings_grant_storage_btn"
+                    )
+
+                    CyberSecondaryButton(
+                        text = "Revoke in Settings",
+                        icon = Icons.Default.OpenInNew,
+                        onClick = {
+                            StoragePermissionHelper.openAppSettings(context)
+                        },
+                        accentColor = CyberCyan,
+                        modifier = Modifier.weight(1f),
+                        testTag = "settings_revoke_storage_btn"
                     )
                 }
             }

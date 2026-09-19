@@ -1,11 +1,14 @@
 package com.kafappstore.ciphervault.ui.components
 
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.webkit.MimeTypeMap
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import com.kafappstore.ciphervault.ui.util.FilePickerUtils
+import com.kafappstore.ciphervault.util.StoragePermissionHelper
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -91,15 +94,67 @@ fun LargeFileStreamingSection(
     val context = LocalContext.current
     val streamingState by viewModel.streamingState.collectAsState()
     var showFormatsGuideDialog by remember { mutableStateOf(false) }
+    var showInAppFileDialog by remember { mutableStateOf(false) }
 
-    // File picker for any file type (documents, media, archives, binaries)
-    val openAnyFileLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        uri?.let {
-            val (name, size) = viewModel.queryFileInfo(it, context.contentResolver)
-            viewModel.selectFileForStreaming(it, name, size, isDecryption = isDecryptionMode)
+    // Universal file picker for any file type (documents, media, archives, binaries)
+    val universalAnyFileLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val uri = FilePickerUtils.extractUriFromIntent(result.data)
+            uri?.let {
+                val (name, size) = viewModel.queryFileInfo(it, context.contentResolver)
+                viewModel.selectFileForStreaming(it, name, size, isDecryption = isDecryptionMode)
+            }
         }
+    }
+
+    var showStoragePermissionPrompt by remember { mutableStateOf(false) }
+
+    val launchSafeAnyFilePicker = {
+        val success = FilePickerUtils.launchSystemFilePicker(context, universalAnyFileLauncher)
+        if (!success) {
+            showInAppFileDialog = true
+            Toast.makeText(context, "System file manager unavailable. Opening Folder Explorer.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // Storage Permission Dialog
+    if (showStoragePermissionPrompt) {
+        StoragePermissionDialog(
+            onDismiss = { showStoragePermissionPrompt = false },
+            onPermissionGranted = {
+                showStoragePermissionPrompt = false
+                showInAppFileDialog = true
+            }
+        )
+    }
+
+    // In-App File & Folder Explorer Dialog
+    if (showInAppFileDialog) {
+        InAppFilePickerDialog(
+            viewModel = viewModel,
+            isForDecrypt = isDecryptionMode,
+            onDismiss = { showInAppFileDialog = false },
+            onLaunchSystemPicker = {
+                val success = FilePickerUtils.launchSystemFilePicker(context, universalAnyFileLauncher)
+                if (!success) {
+                    Toast.makeText(
+                        context,
+                        "System file manager not found on this device. Please use Folder Explorer.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    showInAppFileDialog = false
+                }
+            },
+            onFileSelected = { file ->
+                val uri = Uri.fromFile(file)
+                val name = file.name
+                val size = file.length()
+                viewModel.selectFileForStreaming(uri, name, size, isDecryption = isDecryptionMode)
+            }
+        )
     }
 
     // Save encrypted or decrypted file target
@@ -214,7 +269,11 @@ fun LargeFileStreamingSection(
                             text = "Select File",
                             icon = Icons.Default.FolderOpen,
                             onClick = {
-                                openAnyFileLauncher.launch(arrayOf("*/*"))
+                                if (!StoragePermissionHelper.hasStoragePermission(context)) {
+                                    showStoragePermissionPrompt = true
+                                } else {
+                                    showInAppFileDialog = true
+                                }
                             },
                             accentColor = if (isDecryptionMode) CyberCyan else MatrixGreenPrimary,
                             testTag = "btn_select_streaming_file"
@@ -264,7 +323,7 @@ fun LargeFileStreamingSection(
                         CyberSecondaryButton(
                             text = "Change",
                             icon = Icons.Default.FolderOpen,
-                            onClick = { openAnyFileLauncher.launch(arrayOf("*/*")) },
+                            onClick = { showInAppFileDialog = true },
                             accentColor = Color.LightGray,
                             testTag = "btn_change_streaming_file"
                         )
@@ -538,11 +597,19 @@ fun LargeFileStreamingSection(
                         val origName = meta.originalFileName.ifBlank { "decrypted_file" }
                         val origExt = meta.originalExtension.ifBlank { "bin" }
                         val finalName = if (origName.contains(".")) origName else "$origName.$origExt"
-                        saveTargetLauncher.launch(finalName)
+                        try {
+                            saveTargetLauncher.launch(finalName)
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "System document creator unavailable: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                        }
                     } else {
                         val baseName = streamingState.selectedFileName.substringBeforeLast('.', "file")
                         val outExt = viewModel.getEffectiveOutputExtension()
-                        saveTargetLauncher.launch("${baseName}_encrypted.$outExt")
+                        try {
+                            saveTargetLauncher.launch("${baseName}_encrypted.$outExt")
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "System document creator unavailable: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                        }
                     }
                 },
                 enabled = isEnabled,

@@ -870,7 +870,7 @@ class CipherViewModel(
     // ==========================================
 
     fun queryFileInfo(uri: Uri, contentResolver: ContentResolver): Pair<String, Long> {
-        var name = "unknown_file"
+        var name = uri.lastPathSegment ?: "unknown_file"
         var size = 0L
         try {
             contentResolver.query(uri, null, null, null, null)?.use { cursor ->
@@ -902,21 +902,50 @@ class CipherViewModel(
     fun loadTextFromFile(uri: Uri, contentResolver: ContentResolver, isForDecrypt: Boolean = false) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                val (name, size) = queryFileInfo(uri, contentResolver)
+                val lowerName = name.lowercase(Locale.ROOT)
+                val isVaultExt = lowerName.endsWith(".cvault") || lowerName.endsWith(".cenc") || lowerName.endsWith(".enc")
+
+                if (isForDecrypt && isVaultExt) {
+                    withContext(Dispatchers.Main) {
+                        selectFileForStreaming(uri, name, size, isDecryption = true)
+                        _decryptState.value = _decryptState.value.copy(
+                            successMessage = "Encrypted file ($name) detected. Switched to Streaming Decryption mode."
+                        )
+                    }
+                    return@launch
+                }
+
                 contentResolver.openInputStream(uri)?.use { stream ->
-                    val reader = BufferedReader(InputStreamReader(stream, Charsets.UTF_8))
+                    val pushback = java.io.PushbackInputStream(stream, 4)
+                    val header = ByteArray(4)
+                    val bytesRead = pushback.read(header)
+                    if (bytesRead == 4 && header.contentEquals(CipherEngine.STREAM_MAGIC) && isForDecrypt) {
+                        withContext(Dispatchers.Main) {
+                            selectFileForStreaming(uri, name, size, isDecryption = true)
+                            _decryptState.value = _decryptState.value.copy(
+                                successMessage = "Binary vault format detected. Switched to Streaming Decryption mode."
+                            )
+                        }
+                        return@launch
+                    }
+                    if (bytesRead > 0) {
+                        pushback.unread(header, 0, bytesRead)
+                    }
+                    val reader = BufferedReader(InputStreamReader(pushback, Charsets.UTF_8))
                     val content = reader.readText()
                     withContext(Dispatchers.Main) {
                         if (isForDecrypt) {
                             _decryptState.value = _decryptState.value.copy(
                                 inputBase64 = content.trim(),
                                 errorMessage = null,
-                                successMessage = "File loaded successfully."
+                                successMessage = "File loaded: $name (${content.length} chars)"
                             )
                         } else {
                             _encryptState.value = _encryptState.value.copy(
                                 inputText = content,
                                 errorMessage = null,
-                                successMessage = "Text file (${content.length} chars) loaded successfully."
+                                successMessage = "Text file loaded: $name (${content.length} chars)"
                             )
                         }
                     }
@@ -932,6 +961,178 @@ class CipherViewModel(
                 }
             }
         }
+    }
+
+    /**
+     * Directly loads from a local storage File (e.g. from Downloads or App Storage directory).
+     */
+    fun loadTextFromLocalFile(file: File, isForDecrypt: Boolean = false) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                if (!file.exists() || !file.canRead()) {
+                    withContext(Dispatchers.Main) {
+                        val msg = "Cannot access file: ${file.name}"
+                        if (isForDecrypt) _decryptState.value = _decryptState.value.copy(errorMessage = msg)
+                        else _encryptState.value = _encryptState.value.copy(errorMessage = msg)
+                    }
+                    return@launch
+                }
+                val name = file.name
+                val size = file.length()
+                val lowerName = name.lowercase(Locale.ROOT)
+                val isVaultExt = lowerName.endsWith(".cvault") || lowerName.endsWith(".cenc") || lowerName.endsWith(".enc")
+
+                if (isForDecrypt && isVaultExt) {
+                    val fileUri = Uri.fromFile(file)
+                    withContext(Dispatchers.Main) {
+                        selectFileForStreaming(fileUri, name, size, isDecryption = true)
+                        _decryptState.value = _decryptState.value.copy(
+                            successMessage = "Encrypted file ($name) detected. Switched to Streaming Decryption mode."
+                        )
+                    }
+                    return@launch
+                }
+
+                file.inputStream().use { stream ->
+                    val pushback = java.io.PushbackInputStream(stream, 4)
+                    val header = ByteArray(4)
+                    val bytesRead = pushback.read(header)
+                    if (bytesRead == 4 && header.contentEquals(CipherEngine.STREAM_MAGIC) && isForDecrypt) {
+                        val fileUri = Uri.fromFile(file)
+                        withContext(Dispatchers.Main) {
+                            selectFileForStreaming(fileUri, name, size, isDecryption = true)
+                            _decryptState.value = _decryptState.value.copy(
+                                successMessage = "Binary vault format detected. Switched to Streaming Decryption mode."
+                            )
+                        }
+                        return@launch
+                    }
+                    if (bytesRead > 0) {
+                        pushback.unread(header, 0, bytesRead)
+                    }
+                    val reader = BufferedReader(InputStreamReader(pushback, Charsets.UTF_8))
+                    val content = reader.readText()
+                    withContext(Dispatchers.Main) {
+                        if (isForDecrypt) {
+                            _decryptState.value = _decryptState.value.copy(
+                                inputBase64 = content.trim(),
+                                errorMessage = null,
+                                successMessage = "File loaded: $name (${content.length} chars)"
+                            )
+                        } else {
+                            _encryptState.value = _encryptState.value.copy(
+                                inputText = content,
+                                errorMessage = null,
+                                successMessage = "Text file loaded: $name (${content.length} chars)"
+                            )
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    val msg = "Error reading local file: ${e.localizedMessage ?: "Invalid file"}"
+                    if (isForDecrypt) _decryptState.value = _decryptState.value.copy(errorMessage = msg)
+                    else _encryptState.value = _encryptState.value.copy(errorMessage = msg)
+                }
+            }
+        }
+    }
+
+    /**
+     * Loads a pre-verified encrypted demo payload with password filled for instant decryption verification.
+     * Computes on Dispatchers.Default so the UI thread remains 100% responsive.
+     */
+    fun loadDemoEncryptedPayload() {
+        viewModelScope.launch(Dispatchers.Default) {
+            val demoText = "TOP SECRET // CYBERVAULT VERIFIED DECRYPTION: Operation Quantum Nexus is active. All security nodes online."
+            val demoPass = "DemoPassword#2026"
+            val encrypted = CipherEngine.encrypt(
+                plaintext = demoText,
+                password = demoPass,
+                pepper = "ciphervault_pepper_v1"
+            ).getOrNull() ?: ""
+
+            withContext(Dispatchers.Main) {
+                _decryptState.value = _decryptState.value.copy(
+                    inputBase64 = encrypted,
+                    password = demoPass,
+                    errorMessage = null,
+                    successMessage = "Demo encrypted payload loaded! Password filled. Tap 'Decrypt Terminal' to test."
+                )
+            }
+        }
+    }
+
+    /**
+     * Fast sample file preparation with zero CPU lag (no PBKDF2 derivations on UI thread).
+     */
+    fun ensureSampleFilesExist(context: Context) {
+        try {
+            val docsDir = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) ?: context.filesDir
+            if (!docsDir.exists()) docsDir.mkdirs()
+
+            val plainSampleFile = File(docsDir, "sample_quick_notes.txt")
+            if (!plainSampleFile.exists() || plainSampleFile.length() == 0L) {
+                plainSampleFile.writeText(
+                    "CipherVault Secure Note:\n" +
+                    "- AES-256-GCM authenticated encryption\n" +
+                    "- Zero server tracking, 100% offline security.",
+                    Charsets.UTF_8
+                )
+            }
+        } catch (_: Exception) {}
+    }
+
+    /**
+     * Saves user-entered text as a new file in local storage and returns the created File.
+     */
+    fun createLocalTextFile(context: Context, fileName: String, content: String): File? {
+        return try {
+            val docsDir = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) ?: context.filesDir
+            if (!docsDir.exists()) docsDir.mkdirs()
+            val cleanName = if (fileName.isBlank()) "file_${System.currentTimeMillis()}.txt"
+            else if (!fileName.contains(".")) "$fileName.txt"
+            else fileName
+            val file = File(docsDir, cleanName)
+            file.writeText(content, Charsets.UTF_8)
+            file
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Scans device and app directories for readable text or encrypted files.
+     */
+    fun getAvailableLocalFiles(context: Context): List<File> {
+        ensureSampleFilesExist(context)
+        val candidateDirs = listOfNotNull(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+            context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS),
+            context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
+            context.getExternalFilesDir(null),
+            context.filesDir
+        )
+        val result = mutableListOf<File>()
+        for (dir in candidateDirs) {
+            try {
+                if (dir.exists() && dir.isDirectory) {
+                    dir.listFiles()?.filter { file ->
+                        file.isFile && file.canRead() && (
+                            file.name.endsWith(".txt", ignoreCase = true) ||
+                            file.name.endsWith(".cvault", ignoreCase = true) ||
+                            file.name.endsWith(".cenc", ignoreCase = true) ||
+                            file.name.endsWith(".enc", ignoreCase = true) ||
+                            file.name.endsWith(".json", ignoreCase = true) ||
+                            file.name.endsWith(".b64", ignoreCase = true) ||
+                            file.name.endsWith(".dat", ignoreCase = true) ||
+                            file.name.endsWith(".log", ignoreCase = true)
+                        )
+                    }?.let { result.addAll(it) }
+                }
+            } catch (_: Exception) {}
+        }
+        return result.distinctBy { it.absolutePath }.sortedByDescending { it.lastModified() }
     }
 
     fun saveContentToFile(uri: Uri, content: String, contentResolver: ContentResolver, onComplete: (Boolean, String) -> Unit) {

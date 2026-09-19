@@ -1,8 +1,10 @@
 package com.kafappstore.ciphervault.ui.screens
 
+import android.app.Activity
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import com.kafappstore.ciphervault.ui.util.FilePickerUtils
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -27,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.FileDownload
@@ -37,6 +40,9 @@ import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import com.kafappstore.ciphervault.ui.components.InAppFilePickerDialog
+import com.kafappstore.ciphervault.ui.components.StoragePermissionDialog
+import com.kafappstore.ciphervault.util.StoragePermissionHelper
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -102,11 +108,38 @@ fun DecryptScreen(
     var showSaveDialog by remember { mutableStateOf(false) }
     var pendingFileName by remember { mutableStateOf("") }
 
-    // File picker to read Base64 text file
-    val openFileLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        uri?.let { viewModel.loadTextFromFile(it, context.contentResolver, isForDecrypt = true) }
+    val streamingState by viewModel.streamingState.collectAsState()
+    var showInAppFileDialog by remember { mutableStateOf(false) }
+
+    // Automatically switch to streaming tab if an encrypted streaming file was selected
+    androidx.compose.runtime.LaunchedEffect(streamingState.selectedFileUri) {
+        if (streamingState.selectedFileUri != null && streamingState.isDecryption) {
+            decryptSubMode = 1
+        }
+    }
+
+    // Universal file picker launcher compatible with all Android devices and manufacturers
+    val universalFileLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val uri = FilePickerUtils.extractUriFromIntent(result.data)
+            uri?.let { viewModel.loadTextFromFile(it, context.contentResolver, isForDecrypt = true) }
+        }
+    }
+
+    var showStoragePermissionPrompt by remember { mutableStateOf(false) }
+
+    val launchSafeFilePicker: () -> Unit = {
+        val success = FilePickerUtils.launchSystemFilePicker(context, universalFileLauncher)
+        if (!success) {
+            showInAppFileDialog = true
+            Toast.makeText(
+                context,
+                "System file manager unavailable. Opening Folder Explorer.",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     // Save decrypted output to custom file
@@ -175,6 +208,38 @@ fun DecryptScreen(
         )
     }
 
+    // Storage Permission Dialog
+    if (showStoragePermissionPrompt) {
+        StoragePermissionDialog(
+            onDismiss = { showStoragePermissionPrompt = false },
+            onPermissionGranted = {
+                showStoragePermissionPrompt = false
+                showInAppFileDialog = true
+            }
+        )
+    }
+
+    // In-App File Picker Dialog (safely prevents any system crashes)
+    if (showInAppFileDialog) {
+        InAppFilePickerDialog(
+            viewModel = viewModel,
+            isForDecrypt = true,
+            onDismiss = { showInAppFileDialog = false },
+            onLaunchSystemPicker = {
+                val success = FilePickerUtils.launchSystemFilePicker(context, universalFileLauncher)
+                if (!success) {
+                    Toast.makeText(
+                        context,
+                        "System file manager not found on this device. Please use Folder Explorer.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    showInAppFileDialog = false
+                }
+            }
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -229,12 +294,29 @@ fun DecryptScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     CyberSecondaryButton(
+                        text = "Paste",
+                        icon = Icons.Default.ContentPaste,
+                        onClick = {
+                            clipboardManager.getText()?.text?.let { text ->
+                                if (text.isNotBlank()) {
+                                    viewModel.onDecryptInputChanged(text.trim())
+                                }
+                            }
+                        },
+                        accentColor = MatrixGreenPrimary,
+                        modifier = Modifier.weight(1f),
+                        testTag = "decrypt_paste_btn"
+                    )
+
+                    CyberSecondaryButton(
                         text = "File",
                         icon = Icons.Default.Description,
                         onClick = {
-                            openFileLauncher.launch(
-                                arrayOf("text/*", "application/octet-stream", "*/*")
-                            )
+                            if (!StoragePermissionHelper.hasStoragePermission(context)) {
+                                showStoragePermissionPrompt = true
+                            } else {
+                                showInAppFileDialog = true
+                            }
                         },
                         accentColor = CyberCyan,
                         modifier = Modifier.weight(1f),

@@ -62,10 +62,12 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
@@ -73,6 +75,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.kafappstore.ciphervault.ui.components.StoragePermissionDialog
+import com.kafappstore.ciphervault.util.StoragePermissionHelper
 import com.kafappstore.ciphervault.data.SettingsRepository
 import com.kafappstore.ciphervault.data.db.CipherVaultDatabase
 import com.kafappstore.ciphervault.data.db.ProjectRepository
@@ -244,8 +248,29 @@ enum class MainBottomNav {
 
 @Composable
 fun MainAppScreen(viewModel: CipherViewModel) {
+    val context = LocalContext.current
     var selectedBottomNav by remember { mutableStateOf(MainBottomNav.TERMINAL) }
     var selectedCryptoTab by remember { mutableIntStateOf(0) } // 0: Encrypt, 1: Decrypt
+
+    // First-launch storage permission check
+    var hasPromptedStorageOnFirstLaunch by rememberSaveable { mutableStateOf(false) }
+    var showInitialStoragePrompt by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        if (!hasPromptedStorageOnFirstLaunch && !StoragePermissionHelper.hasStoragePermission(context)) {
+            showInitialStoragePrompt = true
+            hasPromptedStorageOnFirstLaunch = true
+        }
+    }
+
+    if (showInitialStoragePrompt) {
+        StoragePermissionDialog(
+            onDismiss = { showInitialStoragePrompt = false },
+            onPermissionGranted = {
+                showInitialStoragePrompt = false
+            }
+        )
+    }
 
     val pendingNav by viewModel.pendingNavigateTab.collectAsState()
     LaunchedEffect(pendingNav) {
