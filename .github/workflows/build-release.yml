@@ -1,0 +1,101 @@
+name: Build & Release Android Signed APK
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-release:
+    name: Build Signed Android APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.3.1'
+          validate-wrappers: false
+          cache-disabled: false
+
+      - name: Setup Android Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > release.keystore
+            echo "Using provided secret release keystore."
+          elif [ -f "release.keystore" ]; then
+            echo "Using existing repository release.keystore with persistent signature."
+          else
+            echo "Generating release keystore..."
+            keytool -genkey -v -keystore release.keystore -alias "${KEY_ALIAS:-upload}" -keyalg RSA -keysize 2048 -validity 10000 -storepass "${KEYSTORE_PASSWORD:-android}" -keypass "${KEY_PASSWORD:-android}" -dname "CN=CipherVault, OU=KafApp, O=KafApp, L=Tehran, S=Tehran, C=IR"
+          fi
+
+      - name: Build Release APK with Gradle
+        env:
+          KEYSTORE_PATH: ${{ github.workspace }}/release.keystore
+          STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'android' }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'upload' }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || 'android' }}
+        run: |
+          gradle :app:assembleRelease --no-daemon --stacktrace
+
+      - name: Verify APK Signatures (V1, V2, V3)
+        run: |
+          BUILD_TOOLS_PATH=$(find $ANDROID_SDK_ROOT/build-tools -maxdepth 1 -mindepth 1 | sort -V | tail -n 1)
+          echo "Using Android Build Tools at: $BUILD_TOOLS_PATH"
+          for apk in app/build/outputs/apk/release/*.apk; do
+            echo "Verifying signature for $apk"
+            $BUILD_TOOLS_PATH/apksigner verify --verbose "$apk"
+          done
+
+      - name: Prepare Release Assets
+        id: prepare_release
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME:-v1.0.0}"
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            TAG_NAME="v1.0.0-$(date +'%Y%m%d%H%M%S')"
+          fi
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          
+          # Rename output APK for clear identification in Releases
+          cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/CipherVault-Release.apk || true
+
+      - name: Upload Release APK as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CipherVault-Release-APK
+          path: app/build/outputs/apk/release/*.apk
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Create GitHub Release and Publish APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.prepare_release.outputs.tag_name }}
+          name: Release ${{ steps.prepare_release.outputs.tag_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            app/build/outputs/apk/release/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
